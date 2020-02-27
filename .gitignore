@@ -1,0 +1,20 @@
+t-ls-files --others --exclude-from=.git/info/exclude
+# Lines that start with '#' are comments.
+
+# editor and misc backup files - anywhere
+*~
+.*~
+*.bak
+*.bak[0-9][0-9]
+*.orig
+*.orig[0-9][0-9]
+\#*\#
+
+# dependency files - anywhere
+*.dep
+
+# lnInclude (symlink) folders - anywhere
+lnInclude
+
+# build folders - anywhere
+linux*Gcc*/
