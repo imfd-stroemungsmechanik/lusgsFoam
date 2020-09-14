@@ -167,11 +167,20 @@ void Foam::numericFlux::update()
     
     // Volumetric flux
     surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh_.Sf());
+    surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh_.Sf());
+
+    // Make fluxes relative to mesh-motion
+    if (mesh_.moving())
+    {
+        phiv_pos -= mesh_.phi();
+        phiv_neg -= mesh_.phi();
+    }
+   
     // Note: extracted out the orientation so becomes unoriented
     phiv_pos.setOriented(false);
-    surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh_.Sf());
     phiv_neg.setOriented(false);
-    
+
+
     volScalarField c = sqrt(thermo_.Cp()/thermo_.Cv() / thermo_.psi());
 
     // Sonic flux
@@ -197,7 +206,7 @@ void Foam::numericFlux::update()
         min(min(phiv_pos - cSf_pos, phiv_neg - cSf_neg), vZero_)
     );
 
-    surfaceScalarField a_pos = ap/(ap - am);
+    surfaceScalarField a_pos("a_pos", ap/(ap - am));
     
     amaxSf_ = max(mag(am), mag(ap));
 
@@ -208,7 +217,7 @@ void Foam::numericFlux::update()
         aSf = -0.5*amaxSf_;
         a_pos = 0.5;
     }
-    surfaceScalarField a_neg = 1.0 - a_pos;
+    surfaceScalarField a_neg("a_neg", 1.0 - a_pos);
 
     phiv_pos *= a_pos;
     phiv_neg *= a_neg;
@@ -216,6 +225,8 @@ void Foam::numericFlux::update()
     surfaceScalarField aphiv_pos("aphiv_pos", phiv_pos - aSf);
     surfaceScalarField aphiv_neg("aphiv_neg", phiv_neg + aSf);
     
+    // Reuse amaxSf for the maximum positive and negative fluxes
+    // estimated by the central scheme
     amaxSf_ = max(mag(aphiv_pos), mag(aphiv_neg));
     
     surfaceVectorField phiU(aphiv_pos*rho_pos*U_pos + aphiv_neg*rho_neg*U_neg);
@@ -227,8 +238,17 @@ void Foam::numericFlux::update()
     phi_ = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
     phiU_ = phiU + (a_pos*p_pos + a_neg*p_neg)*mesh_.Sf();
     phiE_ = aphiv_pos*(rho_pos*(e_pos + 0.5*magSqr(U_pos)) + p_pos)
-              + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
-              + aSf*p_pos - aSf*p_neg;
+          + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
+          + aSf*p_pos - aSf*p_neg;
+
+    // Make flux for pressure-work absolute
+    if (mesh_.moving())
+    {
+        surfaceScalarField phia(a_pos*p_pos + a_neg*p_neg);
+        phia.setOriented(true);
+
+        phiE_ += mesh_.phi()*phia;
+    }
 }
 
 void Foam::numericFlux::courantNo()

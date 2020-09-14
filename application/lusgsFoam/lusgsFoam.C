@@ -32,8 +32,10 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "dynamicFvMesh.H"
 #include "psiThermo.H"
 #include "turbulentFluidThermoModel.H"
+#include "motionSolver.H"
 
 #include "numericFlux.H"
 #include "LUSGS.H"
@@ -42,12 +44,18 @@ Description
 
 int main(int argc, char *argv[])
 {
-    #include "setRootCase.H"
+    #define NO_CONTROL
+    #include "postProcess.H"
+
+    #include "setRootCaseLists.H"
     #include "createTime.H"
-    #include "createMesh.H"
+    //#include "createMesh.H"
+    #include "createDynamicFvMesh.H"
     #include "createFields.H"
     
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    turbulence->validate();
 
     Info<< "\nStarting time loop\n" << endl;
 
@@ -56,6 +64,9 @@ int main(int argc, char *argv[])
         runTime++;
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
+
+        // Do any mesh changes
+        mesh.update();
 
         #include "compressibleCourantNo.H"
         flux.courantNo();
