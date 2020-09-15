@@ -8,7 +8,6 @@ psiThermo& thermo = pThermo();
 thermo.validate(args.executable(), "e");
 
 volScalarField& p = thermo.p();
-volScalarField& e = thermo.he();
 
 volScalarField rho
 (

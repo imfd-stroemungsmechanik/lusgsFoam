@@ -83,9 +83,6 @@ class numericFlux
         // Fluxes
         
             surfaceScalarField phi_;
-            surfaceVectorField phiU_;
-            surfaceScalarField phiE_;
-
             surfaceScalarField amaxSf_;
 
             //- Positive & negative direction

@@ -160,6 +160,9 @@ void Foam::LUSGS::solve()
     const surfaceScalarField& magSf = mesh_.magSf();
     const scalarField& V = mesh_.V();
 
+    // Flux of mesh
+    const surfaceScalarField meshPhi = mesh_.phi();
+
     // Time step
     const scalar dt = mesh_.time().deltaTValue();
 
@@ -188,11 +191,13 @@ void Foam::LUSGS::solve()
     {
         const labelUList& pFaceCells = mesh_.boundary()[patchi].faceCells();
         const vectorField& pSf = mesh_.Sf().boundaryField()[patchi];
+        const scalarField& pMeshPhi = meshPhi.boundaryField()[patchi];
 
         forAll(mesh_.boundary()[patchi], faceI)
         {
+
             label cellI = pFaceCells[faceI];
-            scalar ac = 0.5 * omega_ * ( mag(U_[cellI] & pSf[faceI])  
+            scalar ac = 0.5 * omega_ * ( mag((U_[cellI] & pSf[faceI]) - pMeshPhi[faceI])
               + a[cellI]*mag(pSf[faceI]));
             D_[cellI] += ac;
         }
@@ -235,7 +240,7 @@ void Foam::LUSGS::solve()
 
                 scalar dvol = mag( (mesh_.C()[own] - mesh_.C()[nei]) & Sf[faceI] );
 
-                scalar ac = 0.5 * omega_ * ( mag( U_[cellI] & Sf[faceI] ) + a[cellI] * magSf[faceI] );
+                scalar ac = 0.5 * omega_ * ( mag((U_[cellI] & Sf[faceI]) - meshPhi[faceI] ) + a[cellI] * magSf[faceI] );
                 scalar av = sqr(magSf[faceI]) / dvol * nuMax[cellI];
 		
                 // Calculate L
@@ -247,17 +252,21 @@ void Foam::LUSGS::solve()
 
                     scalar p1 = (gamma_[faceI] - 1.0) * (rhoE1 - 0.5*magSqr(rhoU1)/rho1);
 
-                    // previous and new fluxes
+                    // Previous and new fluxes
                     scalar phi0 = U_[own] & Sf[faceI];
                     scalar phi1 = (rhoU1/rho1) & Sf[faceI];
 
+                    // Relative fluxes
+                    const scalar phi0r = phi0 - meshPhi[faceI];
+                    const scalar phi1r = phi1 - meshPhi[faceI];
+
                     // Calculate lower diagonal matrix
                     L_rho += (ac + av)*deltaWStarRho_[own]
-                      + 0.5*(rho1*phi1 - rho_[own]*phi0);
+                      + 0.5*(rho1*phi1r - rho_[own]*phi0r);
                     L_rhoU += (ac + av)*deltaWStarRhoU_[own]
-                      + 0.5*(rhoU1*phi1 - rhoU_[own]*phi0 + (p1 - p_[own])*Sf[faceI]);
+                      + 0.5*(rhoU1*phi1r - rhoU_[own]*phi0r + (p1 - p_[own])*Sf[faceI]);
                     L_rhoE += (ac + av)*deltaWStarRhoE_[own]
-                      + 0.5*((rhoE1*phi1 + p1*phi1) - (rhoE_[own]*phi0 + p_[own]*phi0));
+                      + 0.5*((rhoE1*phi1r + p1*phi1) - (rhoE_[own]*phi0r + p_[own]*phi0));
                 }
 
                 D_[cellI] += ac + av;
@@ -309,7 +318,7 @@ void Foam::LUSGS::solve()
                 {
                     scalar dvol = mag( (mesh_.C()[own] - mesh_.C()[nei]) & Sf[faceI] );
                     
-                    scalar ac = 0.5 * omega_ * ( mag(U_[nei] & Sf[faceI]) + a[nei] * magSf[faceI] );
+                    scalar ac = 0.5 * omega_ * ( mag((U_[nei] & Sf[faceI]) - meshPhi[faceI]) + a[nei] * magSf[faceI] );
                     scalar av = sqr(magSf[faceI]) / dvol * nuMax[nei];
 
                     scalar rho1 = rho_[nei] + deltaWRho[nei];
@@ -318,17 +327,21 @@ void Foam::LUSGS::solve()
 
                     scalar p1 = (gamma_[faceI] - 1.0) * (rhoE1 - 0.5*magSqr(rhoU1)/rho1);
 
-                    // previous and new fluxes
+                    // Previous and new fluxes
                     scalar phi0 = U_[nei] & Sf[faceI];
                     scalar phi1 = (rhoU1/rho1) & Sf[faceI];
 
+                    // Relative fluxes
+                    scalar phi0r = phi0 - meshPhi[faceI];
+                    scalar phi1r = phi1 - meshPhi[faceI];
+
                     // Speed of sound at interface
                     U_rho += (ac + av)*deltaWRho[nei]
-                      - 0.5*(rho1*phi1 - rho_[nei]*phi0);
+                      - 0.5*(rho1*phi1r - rho_[nei]*phi0r);
                     U_rhoU += (ac + av)*deltaWRhoU[nei]
-                      - 0.5*(rhoU1*phi1 - rhoU_[nei]*phi0 + (p1 - p_[nei])*Sf[faceI]);
+                      - 0.5*(rhoU1*phi1r - rhoU_[nei]*phi0r + (p1 - p_[nei])*Sf[faceI]);
                     U_rhoE += (ac + av)*deltaWRhoE[nei]
-                      - 0.5*((rhoE1*phi1 + p1*phi1) - (rhoE_[nei]*phi0 + p_[nei]*phi0));
+                      - 0.5*((rhoE1*phi1r + p1*phi1) - (rhoE_[nei]*phi0r + p_[nei]*phi0));
                 }
             }
         }

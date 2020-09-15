@@ -59,32 +59,6 @@ Foam::numericFlux::numericFlux
         mesh_,
         dimensionedScalar("flux::phi", dimMass/dimTime, scalar(0.0))
     ),
-    phiU_
-    (
-        IOobject
-        (
-            "flux::phiU",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedVector("flux::phiU", dimMass*dimLength/dimTime/dimTime, vector(0,0,0))
-    ),
-    phiE_
-    (
-        IOobject
-        (
-            "flux::phiE",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("flux::phiE", dimMass*dimLength*dimLength/dimTime/dimTime/dimTime, scalar(0.0))
-    ),
     amaxSf_
     (
         IOobject
@@ -277,8 +251,8 @@ void Foam::numericFlux::update()
     
     // Update fluxes
     phi_ = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
-    phiU_ = phiU + (a_pos*p_pos + a_neg*p_neg)*mesh_.Sf();
-    phiE_ = aphiv_pos*(rho_pos*(e_pos + 0.5*magSqr(U_pos)) + p_pos)
+    phiU += (a_pos*p_pos + a_neg*p_neg)*mesh_.Sf();
+    surfaceScalarField phiE = aphiv_pos*(rho_pos*(e_pos + 0.5*magSqr(U_pos)) + p_pos)
           + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
           + aSf*p_pos - aSf*p_neg;
 
@@ -288,7 +262,7 @@ void Foam::numericFlux::update()
         surfaceScalarField phia(a_pos*p_pos + a_neg*p_neg);
         phia.setOriented(true);
 
-        phiE_ += mesh_.phi()*phia;
+        phiE += mesh_.phi()*phia;
     }
 
     // Viscous and Reynolds stress tensor
@@ -303,10 +277,10 @@ void Foam::numericFlux::update()
     resRho_ =
         fvc::div(phi_);
     resRhoU_ =
-        fvc::div(phiU_)
+        fvc::div(phiU)
       - fvc::div(tau);
     resRhoE_ = 
-        fvc::div(phiE_)
+        fvc::div(phiE)
       - fvc::div(tau & U_, "div(tau&U)")
       - fvc::laplacian
         (
