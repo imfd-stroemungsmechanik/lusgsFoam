@@ -51,10 +51,24 @@ autoPtr<compressible::turbulenceModel> turbulence
     )
 );
 
-LUSGS lusgs(p, rho, U, thermo, turbulence);
+Info<< "Creating numerical flux scheme\n" << endl;
+numericFlux flux
+(
+    p,
+    U,
+    rho,
+    thermo,
+    turbulence
+);
+
+LUSGS lusgs
+(
+    p,
+    rho,
+    U,
+    flux,
+    thermo,
+    turbulence
+);
 
 #include "readSettings.H"
-
-// Create numeric flux
-numericFlux flux(p, U, rho, thermo);
-flux.update();

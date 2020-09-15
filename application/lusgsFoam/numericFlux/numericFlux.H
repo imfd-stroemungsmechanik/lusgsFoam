@@ -77,6 +77,9 @@ class numericFlux
         //- Reference to the thermophysical model
         const psiThermo& thermo_;
 
+        //- Reference to turbulence model
+        const compressible::turbulenceModel& turbulence_;
+
         // Fluxes
         
             surfaceScalarField phi_;
@@ -88,9 +91,14 @@ class numericFlux
             //- Positive & negative direction
             const surfaceScalarField pos_;
             const surfaceScalarField neg_;
+
+        // Residuals
+        volScalarField resRho_;
+        volVectorField resRhoU_;
+        volScalarField resRhoE_;
                         
         // Constant
-        dimensionedScalar vZero_;
+        const dimensionedScalar vZero_;
         
         // Flux scheme
         word fluxScheme_;
@@ -107,26 +115,36 @@ public:
             const volScalarField& p,
             const volVectorField& U,
             const volScalarField& rho,
-            const psiThermo& thermo
+            const psiThermo& thermo,
+            const compressible::turbulenceModel& turbulence
         );
 
     // Member Functions
 
-        // Return fluxes
-
+        // Return variables
+ 
+            // Mass flux
             const surfaceScalarField& phi()
             {
                 return phi_;
             }
 
-            const surfaceVectorField& phiU()
+            // Residual for mass
+            const volScalarField& resRho() const
             {
-                return phiU_;
+                return resRho_;
             }
 
-            const surfaceScalarField& phiE()
+            // Residual for momentum
+            const volVectorField& resRhoU() const
             {
-                return phiE_;
+                return resRhoU_;
+            }
+
+            // Residual for energy
+            const volScalarField& resRhoE() const
+            {
+                return resRhoE_;
             }
 
         //- Update fluxes

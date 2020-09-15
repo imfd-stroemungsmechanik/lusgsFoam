@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
 
     #include "setRootCaseLists.H"
     #include "createTime.H"
-    //#include "createMesh.H"
     #include "createDynamicFvMesh.H"
     #include "createFields.H"
     
@@ -79,41 +78,8 @@ int main(int argc, char *argv[])
         {
             nIter++;
 
-            // Update fluxes
-            flux.update();
-
-            // Viscous and Reynolds stress tensor
-            const volSymmTensorField tau
-            (
-                "tau",
-              - turbulence->devRhoReff()
-              - ((2.0/3.0)*I)*rho*turbulence->k()
-            );
-
-            // Assemble residuals
-            volScalarField R_rho
-            (
-                fvc::div(flux.phi())
-            );
-            volVectorField R_rhoU
-            (
-                fvc::div(flux.phiU())
-              - fvc::div(tau)
-            );
-            volScalarField R_rhoE
-            (
-                fvc::div(flux.phiE())
-              - fvc::div(tau & U, "div(tau&U)")
-              - fvc::laplacian
-                (
-                    (turbulence->mu()+0.6*turbulence->mut()),
-                    turbulence->k()
-                )
-              - fvc::laplacian(turbulence->alphaEff(), e)
-            );
-
             // Perform forward & backward sweep of LU-SGS scheme
-            lusgs.update(R_rho, R_rhoU, R_rhoE);
+            lusgs.solve();
 
             // Store initial and current residual
             if (iter == 0)

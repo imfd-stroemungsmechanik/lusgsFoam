@@ -38,6 +38,7 @@ Description
 #include "fvCFD.H"
 #include "psiThermo.H"
 #include "turbulentFluidThermoModel.H"
+#include "numericFlux.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -66,14 +67,25 @@ class LUSGS
             //- Velocity
             volVectorField& U_;
 
+        //- Reference to numeric flux
+        numericFlux& flux_;
+
         //- Reference to thermophysical model
         psiThermo& thermo_;
         
         //- Reference to turbulence model
         const compressible::turbulenceModel& turbulence_;
+
+        //- LUSGS solver settings
         
-        //- Over-relaxation factor
-        scalar omega_;
+            //- Over-relaxation factor
+            const scalar omega_;
+        
+            //- Maximum number of iterations
+            const label maxIter_;
+        
+            //- Relative tolerance of solver
+            const scalar relTol_;
 
         //- Isentropic expansion factor
         const surfaceScalarField gamma_;
@@ -102,8 +114,8 @@ class LUSGS
 
         //- Residuals
         scalar resRho_;
-	scalar resRhoU_;
-	scalar resRhoE_;
+        scalar resRhoU_;
+        scalar resRhoE_;
 
     // Private Member Functions
         
@@ -120,6 +132,7 @@ public:
             volScalarField& p,
             volScalarField& rho,
             volVectorField& U,
+            numericFlux& flux,
             psiThermo& thermo,
             const compressible::turbulenceModel& turbulence
         );
@@ -128,28 +141,23 @@ public:
     // Member Functions
 
         //- Perform forward & backward sweep
-        void update
-        (
-            volScalarField& R_rho,
-            volVectorField& R_rhoU,
-            volScalarField& R_rhoE
-        );
+        void solve();
 
         // Return residuals
         scalar resRho()
-	{
+        {
             return resRho_;
-	};
+        };
 
         scalar resRhoU()
-	{
+        {
             return resRhoU_;
-	};
+        };
 
         scalar resRhoE()
-	{
+        {
             return resRhoE_;
-	};
+        };
 };
 
 

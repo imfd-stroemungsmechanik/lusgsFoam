@@ -40,10 +40,6 @@ void Foam::LUSGS::updatePrimitiveFields()
     U_.correctBoundaryConditions();
     rhoU_.boundaryFieldRef() = rho_.boundaryField()*U_.boundaryField();
 
-    dimensionedScalar Tmin("Tmin", dimTemperature, scalar(50));
-    // Limit temperature
-    //rhoE_ = max(rhoE_, (Tmin*thermo_.Cv()+0.5*magSqr(U_))*rho_);
-
     // Update internal energy
     thermo_.he() = rhoE_/rho_ - 0.5*magSqr(U_);
     thermo_.he().correctBoundaryConditions();
@@ -71,6 +67,7 @@ Foam::LUSGS::LUSGS
     volScalarField& p,
     volScalarField& rho,
     volVectorField& U,
+    numericFlux& flux,
     psiThermo& thermo,
     const compressible::turbulenceModel& turbulence
 )
@@ -79,9 +76,22 @@ Foam::LUSGS::LUSGS
     p_(p),
     rho_(rho),
     U_(U),
+    flux_(flux),
     thermo_(thermo),
     turbulence_(turbulence),
-    omega_(mesh_.solutionDict().subDict("LUSGS").lookupOrDefault<scalar>("omega", scalar(1.0))),
+    omega_(
+        max
+        (
+            1.0,
+            min
+            (
+                2.0,
+                mesh_.solutionDict().subDict("LUSGS").lookupOrDefault<scalar>("omega", scalar(1.0))
+            )
+        )
+    ),
+    maxIter_(readLabel(mesh_.solutionDict().subDict("LUSGS").lookup("maxIter"))),
+    relTol_(readScalar(mesh_.solutionDict().subDict("LUSGS").lookup("relTol"))),
     gamma_(linearInterpolate(thermo_.Cp()/thermo_.Cv())),
     D_(mesh_.nCells(), scalar(0.0)),
     rhoU_
@@ -115,11 +125,10 @@ Foam::LUSGS::LUSGS
     resRhoU_(0.0),
     resRhoE_(0.0)
 {
-    // Limit omega
-    omega_ = max(1.0, min(2.0, omega_));
-    
     Info<< "\nInitializing LU-SGS scheme" << endl
-        << "    omega = " << omega_ << endl;
+        << "    omega = " << omega_ << endl
+        << "    maxIter = " << maxIter_ << endl
+        << "    relTol = " << relTol_ << endl;
 }
 
 
@@ -132,17 +141,15 @@ Foam::LUSGS::LUSGS
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
-void Foam::LUSGS::update
-(
-    volScalarField& R_rho,
-    volVectorField& R_rhoU,
-    volScalarField& R_rhoE
-)
+void Foam::LUSGS::solve()
 {
-    // Add time derivative
-    R_rho += fvc::ddt(rho_);
-    R_rhoU += fvc::ddt(rhoU_);
-    R_rhoE += fvc::ddt(rhoE_);
+    // Compute inviscid fluxes
+    flux_.update();
+
+    // Add time derivative to residuals
+    const volScalarField R_rho = flux_.resRho() + fvc::ddt(rho_);
+    const volVectorField R_rhoU = flux_.resRhoU() + fvc::ddt(rhoU_);
+    const volScalarField R_rhoE = flux_.resRhoE() + fvc::ddt(rhoE_);
 
     // Owner and neighbour face index
     const labelUList& owner = mesh_.owner();
@@ -302,7 +309,7 @@ void Foam::LUSGS::update
                 {
                     scalar dvol = mag( (mesh_.C()[own] - mesh_.C()[nei]) & Sf[faceI] );
                     
-		    scalar ac = 0.5 * omega_ * ( mag(U_[nei] & Sf[faceI]) + a[nei] * magSf[faceI] );
+                    scalar ac = 0.5 * omega_ * ( mag(U_[nei] & Sf[faceI]) + a[nei] * magSf[faceI] );
                     scalar av = sqr(magSf[faceI]) / dvol * nuMax[nei];
 
                     scalar rho1 = rho_[nei] + deltaWRho[nei];
@@ -315,14 +322,14 @@ void Foam::LUSGS::update
                     scalar phi0 = U_[nei] & Sf[faceI];
                     scalar phi1 = (rhoU1/rho1) & Sf[faceI];
 
-		    // Speed of sound at interface
-		    U_rho += (ac + av)*deltaWRho[nei]
+                    // Speed of sound at interface
+                    U_rho += (ac + av)*deltaWRho[nei]
                       - 0.5*(rho1*phi1 - rho_[nei]*phi0);
                     U_rhoU += (ac + av)*deltaWRhoU[nei]
                       - 0.5*(rhoU1*phi1 - rhoU_[nei]*phi0 + (p1 - p_[nei])*Sf[faceI]);
                     U_rhoE += (ac + av)*deltaWRhoE[nei]
                       - 0.5*((rhoE1*phi1 + p1*phi1) - (rhoE_[nei]*phi0 + p_[nei]*phi0));
-    		}
+                }
             }
         }
 

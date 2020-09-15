@@ -36,7 +36,8 @@ Foam::numericFlux::numericFlux
     const volScalarField& p,
     const volVectorField& U,
     const volScalarField& rho,
-    const psiThermo& thermophysicalModel
+    const psiThermo& thermophysicalModel,
+    const compressible::turbulenceModel& turbulenceModel
 )
 :
     mesh_(p.mesh()),
@@ -44,6 +45,7 @@ Foam::numericFlux::numericFlux
     U_(U),
     rho_(rho),
     thermo_(thermophysicalModel),
+    turbulence_(turbulenceModel),
     phi_
     (
         IOobject
@@ -118,6 +120,45 @@ Foam::numericFlux::numericFlux
         mesh_,
         dimensionedScalar("neg", dimless, -1.0)
     ),
+    resRho_
+    (
+        IOobject
+        (
+            "flux::resRho",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("flux::resRho", dimMass/dimTime/dimVolume, scalar(0.0))
+    ),
+    resRhoU_
+    (
+        IOobject
+        (
+            "flux::resRhoU",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedVector("flux::resRhoU", dimMass/dimTime/dimTime/dimArea, vector(0,0,0))
+    ),
+    resRhoE_
+    (
+        IOobject
+        (
+            "flux::resRhoE",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("flux::resRhoE", dimMass/dimLength/dimTime/dimTime/dimTime, scalar(0.0))
+    ),
     vZero_
     (
         dimensionedScalar("vZero", dimVolume/dimTime, 0.0)
@@ -139,12 +180,12 @@ Foam::numericFlux::numericFlux
                 << abort(FatalError);
         }
     }
+
+    update();
 }
 
 
-
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
-
 
 
 void Foam::numericFlux::update()
@@ -249,7 +290,32 @@ void Foam::numericFlux::update()
 
         phiE_ += mesh_.phi()*phia;
     }
+
+    // Viscous and Reynolds stress tensor
+    const volSymmTensorField tau
+    (
+        "tau",
+      - turbulence_.devRhoReff()
+      - ((2.0/3.0)*I)*rho_*turbulence_.k()
+    );
+
+    // Assemble residuals for governing equations
+    resRho_ =
+        fvc::div(phi_);
+    resRhoU_ =
+        fvc::div(phiU_)
+      - fvc::div(tau);
+    resRhoE_ = 
+        fvc::div(phiE_)
+      - fvc::div(tau & U_, "div(tau&U)")
+      - fvc::laplacian
+        (
+            turbulence_.mu() + 0.6*turbulence_.mut(),
+            turbulence_.k()
+        )
+      - fvc::laplacian(turbulence_.alphaEff(), thermo_.he());
 }
+
 
 void Foam::numericFlux::courantNo()
 {
