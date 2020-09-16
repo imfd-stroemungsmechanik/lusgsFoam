@@ -10,11 +10,13 @@ FoamFile
     version     2.0;
     format      ascii;
     class       pointScalarField;
+    location    "0";
     object      pointMotionUx;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 dimensions      [0 1 -1 0 0 0 0];
+
 
 internalField   uniform 0;
 
@@ -25,38 +27,37 @@ boundaryField
         type            uniformFixedValue;
         uniformValue    constant 160;
     }
-
     farFieldMoving
     {
         type            slip;
     }
-
     fixedWall
     {
         type            uniformFixedValue;
         uniformValue    constant 0;
     }
-
+    axis
+    {
+        type            empty;
+    }
     left
     {
         type            uniformFixedValue;
         uniformValue    constant 0;
     }
-
     farField
     {
         type            slip;
     }
-
     back
     {
         type            wedge;
     }
-
     front
     {
         type            wedge;
     }
 }
+
 
 // ************************************************************************* //

@@ -10,13 +10,15 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
+    location    "0";
     object      p;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 1e5;
+
+internalField   uniform 100000;
 
 boundaryField
 {
@@ -24,37 +26,40 @@ boundaryField
     {
         type            zeroGradient;
     }
-
     farFieldMoving
     {
         type            zeroGradient;
     }
-
     fixedWall
     {
         type            zeroGradient;
     }
-
+    axis
+    {
+        type            empty;
+    }
     left
     {
         type            totalPressure;
-        p0              $internalField;
+        rho             rho;
+        psi             none;
+        gamma           1;
+        p0              uniform 100000;
+        value           uniform 100000;
     }
-
     farField
     {
         type            zeroGradient;
     }
-
     back
     {
         type            wedge;
     }
-
     front
     {
         type            wedge;
     }
 }
+
 
 // ************************************************************************* //

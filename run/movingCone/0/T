@@ -10,11 +10,13 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
+    location    "0";
     object      T;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 dimensions      [0 0 0 1 0 0 0];
+
 
 internalField   uniform 300;
 
@@ -24,37 +26,37 @@ boundaryField
     {
         type            zeroGradient;
     }
-
     farFieldMoving
     {
         type            zeroGradient;
     }
-
     fixedWall
     {
         type            zeroGradient;
     }
-
+    axis
+    {
+        type            empty;
+    }
     left
     {
         type            inletOutlet;
-        inletValue      $internalField;
+        inletValue      uniform 300;
+        value           uniform 300;
     }
-
     farField
     {
         type            zeroGradient;
     }
-
     back
     {
         type            wedge;
     }
-
     front
     {
         type            wedge;
     }
 }
+
 
 // ************************************************************************* //

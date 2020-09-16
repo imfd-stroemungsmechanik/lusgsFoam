@@ -34,7 +34,7 @@ solvers
 LUSGS
 {
     maxIter     3;
-    relTol      1e-3;
+    relTol      1e-5;
     omega       1.0;
 }
 
