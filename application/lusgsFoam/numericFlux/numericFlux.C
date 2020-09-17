@@ -195,7 +195,6 @@ void Foam::numericFlux::update()
     phiv_pos.setOriented(false);
     phiv_neg.setOriented(false);
 
-
     volScalarField c = sqrt(thermo_.Cp()/thermo_.Cv() / thermo_.psi());
 
     // Sonic flux

@@ -161,7 +161,23 @@ void Foam::LUSGS::solve()
     const scalarField& V = mesh_.V();
 
     // Flux of mesh
-    const surfaceScalarField meshPhi = mesh_.phi();
+    surfaceScalarField meshPhi
+    (
+        IOobject
+        (
+            "lusgs::meshPhi",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("lusgs::meshPhi", dimVolume/dimTime, scalar(0.0))
+    );
+    if (mesh_.moving())
+    {
+        meshPhi = mesh_.phi();
+    }
 
     // Time step
     const scalar dt = mesh_.time().deltaTValue();
@@ -185,6 +201,12 @@ void Foam::LUSGS::solve()
             thermo_.Cp()/thermo_.Cv()*turbulence_.alphaEff()/rho_
         )
     );
+/*
+    volScalarField nuMax
+    (
+        2.0*turbulence_.muEff() / rho_
+    );
+*/
 
     // Loop over all boundaries
     forAll(mesh_.boundary(), patchi)

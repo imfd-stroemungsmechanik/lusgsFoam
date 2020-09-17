@@ -69,5 +69,3 @@ LUSGS lusgs
     thermo,
     turbulence
 );
-
-#include "readSettings.H"

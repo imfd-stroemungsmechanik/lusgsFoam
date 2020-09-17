@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
+        #include "readSettings.H"
+
         // Do any mesh changes
         mesh.update();
 

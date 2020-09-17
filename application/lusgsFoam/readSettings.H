@@ -12,7 +12,3 @@ scalar initRhoE(0.0);
 scalar curRho(0.0);
 scalar curRhoU(0.0);
 scalar curRhoE(0.0);
-
-    
-Info<< "    maxIter = " << maxIter << endl
-    << "    relTol = " << relTol << endl << endl;
