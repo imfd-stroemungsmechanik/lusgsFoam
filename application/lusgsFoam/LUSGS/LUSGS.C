@@ -38,13 +38,13 @@ void Foam::LUSGS::updatePrimitiveFields()
         rhoU_.primitiveField()
        /rho_.primitiveField();
     U_.correctBoundaryConditions();
-    rhoU_.boundaryFieldRef() = rho_.boundaryField()*U_.boundaryField();
+    rhoU_.boundaryFieldRef() == rho_.boundaryField()*U_.boundaryField();
 
     // Update internal energy
     thermo_.he() = rhoE_/rho_ - 0.5*magSqr(U_);
     thermo_.he().correctBoundaryConditions();
     thermo_.correct();
-    rhoE_.boundaryFieldRef() =
+    rhoE_.boundaryFieldRef() ==
         rho_.boundaryField()*
         (
             thermo_.he().boundaryField() + 0.5*magSqr(U_.boundaryField())
@@ -55,7 +55,7 @@ void Foam::LUSGS::updatePrimitiveFields()
         rho_.primitiveField()
        /thermo_.psi().primitiveField();
     p_.correctBoundaryConditions();
-    rho_.boundaryFieldRef() = thermo_.psi().boundaryField()*p_.boundaryField();
+    rho_.boundaryFieldRef() == thermo_.psi().boundaryField()*p_.boundaryField();
 }
 
 
@@ -201,12 +201,6 @@ void Foam::LUSGS::solve()
             thermo_.Cp()/thermo_.Cv()*turbulence_.alphaEff()/rho_
         )
     );
-/*
-    volScalarField nuMax
-    (
-        2.0*turbulence_.muEff() / rho_
-    );
-*/
 
     // Loop over all boundaries
     forAll(mesh_.boundary(), patchi)
@@ -221,6 +215,7 @@ void Foam::LUSGS::solve()
             label cellI = pFaceCells[faceI];
             scalar ac = 0.5 * omega_ * ( mag((U_[cellI] & pSf[faceI]) - pMeshPhi[faceI])
               + a[cellI]*mag(pSf[faceI]));
+
             D_[cellI] += ac;
         }
     }
