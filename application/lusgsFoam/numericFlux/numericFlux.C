@@ -255,6 +255,8 @@ void Foam::numericFlux::update()
           + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
           + aSf*p_pos - aSf*p_neg;
 
+    phi_.setOriented(true);
+
     // Make flux for pressure-work absolute
     if (mesh_.moving())
     {
