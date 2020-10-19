@@ -17,10 +17,6 @@ FoamFile
 
 solvers
 {
-    "(rho|rhoU|rhoE)"
-    {
-        solver          diagonal;
-    }
 }
 
 LUSGS

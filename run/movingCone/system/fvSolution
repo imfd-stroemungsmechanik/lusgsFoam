@@ -17,11 +17,6 @@ FoamFile
 
 solvers
 {
-    "(rho|rhoU|rhoE)"
-    {
-        solver          diagonal;
-    }
-
     cellMotionUx
     {
         solver          PCG;
