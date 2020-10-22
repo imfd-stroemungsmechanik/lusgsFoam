@@ -109,14 +109,14 @@ int main(int argc, char *argv[])
         }
 
         Info<< "LUSGS:  Solving for rho,  " 
-            << "Initial residual = " << initRho << ", "
-            << "Final residual = " << curRho << ", No Iterations " << nIter << nl;
+            << "Initial residual = 1, "
+            << "Final residual = " << curRho/initRho << ", No Iterations " << nIter << nl;
         Info<< "LUSGS:  Solving for rhoU,  " 
-            << "Initial residual = " << initRhoU << ", "
-            << "Final residual = " << curRhoU << ", No Iterations " << nIter << nl;
+            << "Initial residual = 1, "
+            << "Final residual = " << curRhoU/initRhoU << ", No Iterations " << nIter << nl;
         Info<< "LUSGS:  Solving for rhoE,  " 
-            << "Initial residual = " << initRhoE << ", "
-            << "Final residual = " << curRhoE << ", No Iterations " << nIter << nl;
+            << "Initial residual = 1, "
+            << "Final residual = " << curRhoE/initRhoE << ", No Iterations " << nIter << nl;
 
         // Update mass flux
         phi = flux.phi();
