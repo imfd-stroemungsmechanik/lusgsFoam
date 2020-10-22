@@ -108,13 +108,13 @@ int main(int argc, char *argv[])
             }
         }
 
-        Info<< "LUSGS:  Solving for rho,  " 
+        Info<< "LUSGS: Solving for rho,  " 
             << "Initial residual = 1, "
             << "Final residual = " << curRho/initRho << ", No Iterations " << nIter << nl;
-        Info<< "LUSGS:  Solving for rhoU,  " 
+        Info<< "LUSGS: Solving for rhoU,  " 
             << "Initial residual = 1, "
             << "Final residual = " << curRhoU/initRhoU << ", No Iterations " << nIter << nl;
-        Info<< "LUSGS:  Solving for rhoE,  " 
+        Info<< "LUSGS: Solving for rhoE,  " 
             << "Initial residual = 1, "
             << "Final residual = " << curRhoE/initRhoE << ", No Iterations " << nIter << nl;
 

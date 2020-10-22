@@ -23,9 +23,9 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         10;
+endTime         30;
 
-deltaT          1e-4;
+deltaT          2e-4;
 
 writeControl    runTime;
 
@@ -59,7 +59,7 @@ functions
 
         patches         (cylinder);
 
-        magUInf         34.72;
+        magUInf         34.723;
         rhoInf          1.161;
         lRef            1;
         Aref            1;
