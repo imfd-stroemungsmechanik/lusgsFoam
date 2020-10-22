@@ -11,38 +11,19 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "system";
-    object      controlDict;
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     lusgsFoam;
+solvers
+{
+}
 
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         0.01;
-
-deltaT          2e-6;
-
-writeControl    runTime;
-
-writeInterval   0.005;
-
-purgeWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression on;
-
-timeFormat      general;
-
-timePrecision   9;
-
-runTimeModifiable true;
+LUSGS
+{
+    maxIter     10;
+    relTol      1e-3;
+    omega       1.0;
+}
 
 // ************************************************************************* //

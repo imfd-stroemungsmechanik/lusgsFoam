@@ -9,40 +9,33 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      controlDict;
+    class       volScalarField;
+    location    "0";
+    object      p;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     lusgsFoam;
+dimensions      [ 1 -1 -2 0 0 0 0 ];
 
-startFrom       startTime;
+internalField   uniform 100000;
 
-startTime       0;
+boundaryField
+{
+    farfield
+    {
+        type            outletInlet;
+        outletValue     uniform 100000;
+        value           uniform 100000;
+    }
+    cylinder
+    {
+        type            zeroGradient;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
 
-stopAt          endTime;
-
-endTime         0.01;
-
-deltaT          2e-6;
-
-writeControl    runTime;
-
-writeInterval   0.005;
-
-purgeWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression on;
-
-timeFormat      general;
-
-timePrecision   9;
-
-runTimeModifiable true;
 
 // ************************************************************************* //

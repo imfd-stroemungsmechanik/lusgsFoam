@@ -23,13 +23,13 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         0.01;
+endTime         10;
 
-deltaT          2e-6;
+deltaT          1e-4;
 
 writeControl    runTime;
 
-writeInterval   0.005;
+writeInterval   1;
 
 purgeWrite      0;
 
@@ -44,5 +44,32 @@ timeFormat      general;
 timePrecision   9;
 
 runTimeModifiable true;
+
+functions
+{
+    forceCoefficients
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+
+        writeControl    timeStep;
+        writeInterval   1;
+
+        log             off;
+
+        patches         (cylinder);
+
+        magUInf         34.72;
+        rhoInf          1.161;
+        lRef            1;
+        Aref            1;
+
+        liftDir         (0 1 0);
+        dragDir         (1 0 0);
+
+        CofR            (0 0 0);
+        pitchAxis       (0 1 0);
+    }
+}
 
 // ************************************************************************* //

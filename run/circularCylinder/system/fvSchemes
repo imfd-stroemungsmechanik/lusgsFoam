@@ -11,38 +11,45 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "system";
-    object      controlDict;
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     lusgsFoam;
+fluxScheme              Kurganov;
 
-startFrom       startTime;
+ddtSchemes
+{
+    default             Euler;
+}
 
-startTime       0;
+gradSchemes
+{
+    default             Gauss linear;
+}
 
-stopAt          endTime;
+divSchemes
+{
+    div(tau)            Gauss linear;
+    div(tau&U)          Gauss linear;
+}
 
-endTime         0.01;
+laplacianSchemes
+{
+    default             Gauss linear corrected;
+}
 
-deltaT          2e-6;
+interpolationSchemes
+{
+    default             linear;
 
-writeControl    runTime;
+    reconstruct(rho)    vanLeer;
+    reconstruct(p)      vanLeer;
+    reconstruct(U)      vanLeerV;
+}
 
-writeInterval   0.005;
-
-purgeWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression on;
-
-timeFormat      general;
-
-timePrecision   9;
-
-runTimeModifiable true;
+snGradSchemes
+{
+    default             corrected;
+}
 
 // ************************************************************************* //

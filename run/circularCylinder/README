@@ -1,0 +1,36 @@
+# Steady-state flow around a cylinder
+
+Ma = 0.1
+Re = 20
+
+--------
+
+p = 100.000 Pa
+T = 300 K
+D = 1 m
+
+Speed of sound
+--------------
+-> a = sqrt(kappa*R*T)
+-> a = 347.2 m/s
+-> U = 34.72 m/s
+   =============
+
+Kinematic viscosity
+-------------------
+-> Re = U*D/nu
+-> nu = 1.736 m2/s
+   ================
+
+Density
+-------
+-> rho = p/(R*T)
+-> rho = 1.161 kg/m3
+   =================
+
+Dynamic viscosity
+-----------------
+-> mu = nu*rho
+-> mu = 2.0155 Pa s
+   ================
+
