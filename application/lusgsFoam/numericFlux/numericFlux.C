@@ -133,6 +133,19 @@ Foam::numericFlux::numericFlux
         mesh_,
         dimensionedScalar("flux::resRhoE", dimMass/dimLength/dimTime/dimTime/dimTime, scalar(0.0))
     ),
+    tauMC_
+    (
+        IOobject
+        (
+            "tauMC",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedTensor("tauMC", dimMass/dimLength/dimTime/dimTime, Zero)
+    ),
     vZero_
     (
         dimensionedScalar("vZero", dimVolume/dimTime, 0.0)
@@ -267,11 +280,18 @@ void Foam::numericFlux::update()
     }
 
     // Viscous and Reynolds stress tensor
-    const volSymmTensorField tau
+    volScalarField muEff("muEff", turbulence_.muEff());
+    tauMC_ = muEff*dev2(Foam::T(fvc::grad(U_)));
+
+    // Dissipation term
+    surfaceScalarField sigmaDotU
     (
-        "tau",
-      - turbulence_.devRhoReff()
-      - ((2.0/3.0)*I)*rho_*turbulence_.k()
+        "sigmaDotU",
+        (
+            fvc::interpolate(muEff)*mesh_.magSf()*fvc::snGrad(U_)
+          + fvc::dotInterpolate(mesh_.Sf(), tauMC_)
+        )
+      & (a_pos*U_pos + a_neg*U_neg)
     );
 
     // Assemble residuals for governing equations
@@ -279,15 +299,11 @@ void Foam::numericFlux::update()
         fvc::div(phi_);
     resRhoU_ =
         fvc::div(phiU)
-      - fvc::div(tau);
+      - fvc::div(tauMC_)
+      - fvc::laplacian(muEff, U_);
     resRhoE_ = 
         fvc::div(phiE)
-      - fvc::div(tau & U_, "div(tau&U)")
-      - fvc::laplacian
-        (
-            turbulence_.mu() + 0.6*turbulence_.mut(),
-            turbulence_.k()
-        )
+      - fvc::div(sigmaDotU)
       - fvc::laplacian(turbulence_.alphaEff(), thermo_.he());
 }
 

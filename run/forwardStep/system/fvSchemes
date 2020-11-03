@@ -29,8 +29,7 @@ gradSchemes
 
 divSchemes
 {
-    div(tau)            Gauss linear;
-    div(tau&U)          Gauss linear;
+    div(tauMC)          Gauss linear;
 }
 
 laplacianSchemes

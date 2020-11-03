@@ -93,6 +93,9 @@ class numericFlux
         volScalarField resRho_;
         volVectorField resRhoU_;
         volScalarField resRhoE_;
+
+        // Reynolds stress tensor
+        volTensorField tauMC_;
                         
         // Constant
         const dimensionedScalar vZero_;

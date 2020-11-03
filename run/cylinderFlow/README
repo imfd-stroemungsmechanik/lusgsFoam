@@ -1,4 +1,6 @@
 # Steady-state flow around a cylinder
+# At a given Reynolds-number of 40 the
+# drag coefficient should be around 1.5 to 1.6
 
 Ma = 0.1
 Re = 40
