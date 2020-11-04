@@ -34,9 +34,9 @@ License
 void Foam::LUSGS::updatePrimitiveFields()
 {
     // Update velocity
-    U_.primitiveFieldRef() =
-        rhoU_.primitiveField()
-       /rho_.primitiveField();
+    U_.ref() =
+        rhoU_()
+       /rho_();
     U_.correctBoundaryConditions();
     rhoU_.boundaryFieldRef() == rho_.boundaryField()*U_.boundaryField();
 
@@ -51,9 +51,9 @@ void Foam::LUSGS::updatePrimitiveFields()
         );
 
     // Update pressure field
-    p_.primitiveFieldRef() =
-        rho_.primitiveField()
-       /thermo_.psi().primitiveField();
+    p_.ref() =
+        rho_()
+       /thermo_.psi();
     p_.correctBoundaryConditions();
     rho_.boundaryFieldRef() == thermo_.psi().boundaryField()*p_.boundaryField();
 }

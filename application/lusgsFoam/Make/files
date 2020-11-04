@@ -1,5 +1,6 @@
 BCs/fixedRho/fixedRhoFvPatchScalarField.C
 BCs/maxwellSlip/maxwellSlipUFvPatchVectorField.C
+BCs/langmuirMaxwellSlip/langmuirMaxwellSlipUFvPatchVectorField.C
 BCs/smoluchowskiJump/smoluchowskiJumpTFvPatchScalarField.C
 numericFlux/numericFlux.C
 LUSGS/LUSGS.C

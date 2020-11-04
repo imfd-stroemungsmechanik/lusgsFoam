@@ -121,17 +121,11 @@ int main(int argc, char *argv[])
         // Update mass flux
         phi = flux.phi();
 
-        // Solve governing equations of turbulence model
         turbulence->correct();
 
-        // Write time step
         runTime.write();
 
-      	// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        runTime.printExecutionTime(Info);
     }
 
     Info<< "\nEnd\n" << endl;
