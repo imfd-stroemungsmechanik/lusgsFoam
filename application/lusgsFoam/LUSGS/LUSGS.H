@@ -80,12 +80,6 @@ class LUSGS
         
             //- Over-relaxation factor
             const scalar omega_;
-        
-            //- Maximum number of iterations
-            const label maxIter_;
-        
-            //- Relative tolerance of solver
-            const scalar relTol_;
 
         //- Isentropic expansion factor
         const surfaceScalarField gamma_;
@@ -103,19 +97,15 @@ class LUSGS
 
         //- Intermediate fields
         
-            //- Density
+            //- Forward sweep
             volScalarField deltaWStarRho_;
-            
-            //- Momentum
             volVectorField deltaWStarRhoU_;
-            
-            //- Energy
             volScalarField deltaWStarRhoE_;
 
-        //- Residuals
-        scalar resRho_;
-        scalar resRhoU_;
-        scalar resRhoE_;
+            //- Backward sweep
+            volScalarField deltaWRho_;
+            volVectorField deltaWRhoU_;
+            volScalarField deltaWRhoE_;
 
     // Private Member Functions
         
@@ -141,23 +131,7 @@ public:
     // Member Functions
 
         //- Perform forward & backward sweep
-        void solve();
-
-        // Return residuals
-        scalar resRho()
-        {
-            return resRho_;
-        };
-
-        scalar resRhoU()
-        {
-            return resRhoU_;
-        };
-
-        scalar resRhoE()
-        {
-            return resRhoE_;
-        };
+        void sweep();
 };
 
 

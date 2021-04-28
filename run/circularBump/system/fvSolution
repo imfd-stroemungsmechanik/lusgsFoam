@@ -17,13 +17,13 @@ FoamFile
 
 solvers
 {
-}
-
-LUSGS
-{
-    maxIter     10;
-    relTol      1e-3;
-    omega       1.0;
+    "(U|e)"
+    {
+        solver          PBiCGStab;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
 }
 
 // ************************************************************************* //

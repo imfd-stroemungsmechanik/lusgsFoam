@@ -57,7 +57,33 @@ Foam::numericFlux::numericFlux
             IOobject::NO_WRITE
         ),
         mesh_,
-        dimensionedScalar("flux::phi", dimMass/dimTime, scalar(0.0))
+        dimensionedScalar("flux::phi", dimMass/dimTime, Zero)
+    ),
+    phiUp_
+    (
+        IOobject
+        (
+            "flux::phiUp",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedVector("flux::phiUp", dimMass*dimLength/dimTime/dimTime, Zero)
+    ),
+    phiEp_
+    (
+        IOobject
+        (
+            "flux::phiEp",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("flux::phiEp", dimMass*dimLength*dimLength/dimTime/dimTime/dimTime, Zero)
     ),
     amaxSf_
     (
@@ -94,45 +120,6 @@ Foam::numericFlux::numericFlux
         mesh_,
         dimensionedScalar("neg", dimless, -1.0)
     ),
-    resRho_
-    (
-        IOobject
-        (
-            "flux::resRho",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("flux::resRho", dimMass/dimTime/dimVolume, scalar(0.0))
-    ),
-    resRhoU_
-    (
-        IOobject
-        (
-            "flux::resRhoU",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedVector("flux::resRhoU", dimMass/dimTime/dimTime/dimArea, vector(0,0,0))
-    ),
-    resRhoE_
-    (
-        IOobject
-        (
-            "flux::resRhoE",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("flux::resRhoE", dimMass/dimLength/dimTime/dimTime/dimTime, scalar(0.0))
-    ),
     tauMC_
     (
         IOobject
@@ -145,6 +132,19 @@ Foam::numericFlux::numericFlux
         ),
         mesh_,
         dimensionedTensor("tauMC", dimMass/dimLength/dimTime/dimTime, Zero)
+    ),
+    sigmaDotU_
+    (
+        IOobject
+        (
+            "sigmaDotU",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar("sigmaDotU", dimMass*dimLength*dimLength/dimTime/dimTime/dimTime, Zero)
     ),
     vZero_
     (
@@ -255,20 +255,25 @@ void Foam::numericFlux::update()
     // Reuse amaxSf for the maximum positive and negative fluxes
     // estimated by the central scheme
     amaxSf_ = max(mag(aphiv_pos), mag(aphiv_neg));
-    
+
+    phi_ = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
+    // Note: reassembled orientation from the pos and neg parts so becomes
+    // oriented
+    phi_.setOriented(true);
+ 
     surfaceVectorField phiU(aphiv_pos*rho_pos*U_pos + aphiv_neg*rho_neg*U_neg);
     // Note: reassembled orientation from the pos and neg parts so becomes
     // oriented
     phiU.setOriented(true);
-    
-    // Update fluxes
-    phi_ = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
-    phiU += (a_pos*p_pos + a_neg*p_neg)*mesh_.Sf();
-    surfaceScalarField phiE = aphiv_pos*(rho_pos*(e_pos + 0.5*magSqr(U_pos)) + p_pos)
-          + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
-          + aSf*p_pos - aSf*p_neg;
 
-    phi_.setOriented(true);
+    phiUp_ = phiU + (a_pos*p_pos + a_neg*p_neg)*mesh_.Sf();
+
+    phiEp_ =
+    (
+        aphiv_pos*(rho_pos*(e_pos + 0.5*magSqr(U_pos)) + p_pos)
+      + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
+      + aSf*p_pos - aSf*p_neg
+    );
 
     // Make flux for pressure-work absolute
     if (mesh_.moving())
@@ -276,7 +281,7 @@ void Foam::numericFlux::update()
         surfaceScalarField phia(a_pos*p_pos + a_neg*p_neg);
         phia.setOriented(true);
 
-        phiE += mesh_.phi()*phia;
+        phiEp_ += mesh_.phi()*phia;
     }
 
     // Viscous and Reynolds stress tensor
@@ -284,27 +289,14 @@ void Foam::numericFlux::update()
     tauMC_ = muEff*dev2(Foam::T(fvc::grad(U_)));
 
     // Dissipation term
-    surfaceScalarField sigmaDotU
+    sigmaDotU_ =
     (
-        "sigmaDotU",
         (
             fvc::interpolate(muEff)*mesh_.magSf()*fvc::snGrad(U_)
           + fvc::dotInterpolate(mesh_.Sf(), tauMC_)
         )
       & (a_pos*U_pos + a_neg*U_neg)
     );
-
-    // Assemble residuals for governing equations
-    resRho_ =
-        fvc::div(phi_);
-    resRhoU_ =
-        fvc::div(phiU)
-      - fvc::div(tauMC_)
-      - fvc::laplacian(muEff, U_);
-    resRhoE_ = 
-        fvc::div(phiE)
-      - fvc::div(sigmaDotU)
-      - fvc::laplacian(turbulence_.alphaEff(), thermo_.he());
 }
 
 

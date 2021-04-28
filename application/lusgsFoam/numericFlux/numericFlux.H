@@ -83,19 +83,19 @@ class numericFlux
         // Fluxes
         
             surfaceScalarField phi_;
+            surfaceVectorField phiUp_;
+            surfaceScalarField phiEp_;
             surfaceScalarField amaxSf_;
 
             //- Positive & negative direction
             const surfaceScalarField pos_;
             const surfaceScalarField neg_;
 
-        // Residuals
-        volScalarField resRho_;
-        volVectorField resRhoU_;
-        volScalarField resRhoE_;
-
         // Reynolds stress tensor
         volTensorField tauMC_;
+
+        // Dissipation
+        surfaceScalarField sigmaDotU_;
                         
         // Constant
         const dimensionedScalar vZero_;
@@ -129,22 +129,28 @@ public:
                 return phi_;
             }
 
-            // Residual for mass
-            const volScalarField& resRho() const
+            // Momentum flux
+            const surfaceVectorField& phiUp() const
             {
-                return resRho_;
+                return phiUp_;
             }
 
-            // Residual for momentum
-            const volVectorField& resRhoU() const
+            // Energy flux
+            const surfaceScalarField& phiEp() const
             {
-                return resRhoU_;
+                return phiEp_;
             }
 
-            // Residual for energy
-            const volScalarField& resRhoE() const
+            // Viscous stress tensor
+            const volTensorField& tauMC() const
             {
-                return resRhoE_;
+                return tauMC_;
+            }
+
+            // Dissipation
+            const surfaceScalarField& sigmaDotU() const
+            {
+                return sigmaDotU_;
             }
 
         //- Update fluxes

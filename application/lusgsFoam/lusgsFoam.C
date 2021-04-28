@@ -64,62 +64,20 @@ int main(int argc, char *argv[])
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
 
-        #include "readSettings.H"
-
         // Do any mesh changes
         mesh.update();
 
         #include "compressibleCourantNo.H"
         flux.courantNo();
 
-        // Iteration counter
-        int nIter(0);
+        Info << "Flux calculation... ";
+        flux.update();
 
-        // Start inner correctors
-        for (int iter=0; iter < maxIter; iter++)
-        {
-            nIter++;
-
-            // Perform forward & backward sweep of LU-SGS scheme
-            lusgs.solve();
-
-            // Store initial and current residual
-            if (iter == 0)
-            {
-	            initRho = lusgs.resRho();
-	            initRhoU = lusgs.resRhoU();
-	            initRhoE = lusgs.resRhoE();
-	        }
-
-            // Current residual
-            curRho = lusgs.resRho();
-            curRhoU = lusgs.resRhoU();
-            curRhoE = lusgs.resRhoE();
-
-            // Break correctors if relative residual is reached
-            if
-            (
-                (curRho/initRho) < relTol
-             && (curRhoU/initRhoU) < relTol
-             && (curRhoE/initRhoE) < relTol
-            )
-            {
-                break;
-            }
-        }
-
-        Info<< "LUSGS: Solving for rho,  " 
-            << "Initial residual = 1, "
-            << "Final residual = " << curRho/initRho << ", No Iterations " << nIter << nl;
-        Info<< "LUSGS: Solving for rhoU,  " 
-            << "Initial residual = 1, "
-            << "Final residual = " << curRhoU/initRhoU << ", No Iterations " << nIter << nl;
-        Info<< "LUSGS: Solving for rhoE,  " 
-            << "Initial residual = 1, "
-            << "Final residual = " << curRhoE/initRhoE << ", No Iterations " << nIter << nl;
-
-        // Update mass flux
+        // Make flux accessible for other parts of openfoam
         phi = flux.phi();
+
+        // Perform forward & backward sweep of LU-SGS scheme
+        lusgs.sweep();
 
         turbulence->correct();
 

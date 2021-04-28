@@ -36,7 +36,7 @@ volVectorField U
     mesh
 );
 
-#include "compressibleCreatePhi.H"
+surfaceScalarField phi("phi", fvc::flux(rho*U));
 
 Info<< "Creating turbulence model\n" << endl;
 autoPtr<compressible::turbulenceModel> turbulence
@@ -69,3 +69,4 @@ LUSGS lusgs
     thermo,
     turbulence
 );
+
