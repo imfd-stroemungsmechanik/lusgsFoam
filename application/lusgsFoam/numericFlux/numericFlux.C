@@ -152,6 +152,7 @@ Foam::numericFlux::numericFlux
     )
 {
     fluxScheme_ = "Kurganov";
+
     if (mesh_.schemesDict().readIfPresent("fluxScheme", fluxScheme_))
     {
         if ((fluxScheme_ == "Tadmor") || (fluxScheme_ == "Kurganov"))

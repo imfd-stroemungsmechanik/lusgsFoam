@@ -81,6 +81,9 @@ class LUSGS
             //- Over-relaxation factor
             const scalar omega_;
 
+            //- Switch for inviscid flows
+            bool inviscid_;
+
         //- Isentropic expansion factor
         const surfaceScalarField gamma_;
             

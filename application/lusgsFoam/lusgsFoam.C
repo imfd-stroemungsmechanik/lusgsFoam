@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
         #include "compressibleCourantNo.H"
         flux.courantNo();
 
-        Info << "Flux calculation... ";
         flux.update();
 
         // Make flux accessible for other parts of openfoam

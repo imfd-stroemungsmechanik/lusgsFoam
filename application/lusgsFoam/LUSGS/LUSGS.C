@@ -43,13 +43,16 @@ void Foam::LUSGS::updatePrimitiveFields()
     volScalarField muEff("muEff", turbulence_.muEff());
 
     // Solve momentum equation
-    solve
-    (
-        fvm::ddt(rho_, U_) - fvc::ddt(rho_, U_)
-      - fvm::laplacian(muEff, U_)
-      - fvc::div(flux_.tauMC())
-    );
-    rhoU_ = rho_*U_;
+    if (!inviscid_)
+    {
+        solve
+        (
+            fvm::ddt(rho_, U_) - fvc::ddt(rho_, U_)
+          - fvm::laplacian(muEff, U_)
+          - fvc::div(flux_.tauMC())
+        );
+        rhoU_ = rho_*U_;
+    }
 
     // Update internal energy
     thermo_.he() = rhoE_/rho_ - 0.5*magSqr(U_);
@@ -62,13 +65,16 @@ void Foam::LUSGS::updatePrimitiveFields()
         );
 
     // Solve energy equation
-    solve
-    (
-        fvm::ddt(rho_, thermo_.he()) - fvc::ddt(rho_, thermo_.he())
-      - fvm::laplacian(turbulence_.alphaEff(), thermo_.he())
-    );
-    thermo_.correct();
-    rhoE_ = rho_*(thermo_.he() + 0.5*magSqr(U_));
+    if (!inviscid_)
+    {
+        solve
+        (
+            fvm::ddt(rho_, thermo_.he()) - fvc::ddt(rho_, thermo_.he())
+          - fvm::laplacian(turbulence_.alphaEff(), thermo_.he())
+        );
+        thermo_.correct();
+        rhoE_ = rho_*(thermo_.he() + 0.5*magSqr(U_));
+    }
 
     // Update pressure field
     p_.ref() =
@@ -100,6 +106,7 @@ Foam::LUSGS::LUSGS
     thermo_(thermo),
     turbulence_(turbulence),
     omega_(1.0),
+    inviscid_(true),
     gamma_(linearInterpolate(thermo_.Cp()/thermo_.Cv())),
     D_(mesh_.nCells(), Zero),
     rhoU_
@@ -207,6 +214,11 @@ Foam::LUSGS::LUSGS
 {
     Info<< "\nInitializing LU-SGS scheme" << endl
         << "    omega = " << omega_ << endl;
+
+    if (max(thermo_.mu()().primitiveField()) > 0.0)
+    {
+        inviscid_ = false;
+    }
 }
 
 
@@ -327,8 +339,6 @@ void Foam::LUSGS::sweep()
     // Forward sweep
     //
 
-    Info << "LUSGS forward sweep... ";
-
     // Forward loop over all cells
     forAll(mesh_.cells(), cellI)
     {
@@ -403,7 +413,6 @@ void Foam::LUSGS::sweep()
     deltaWRhoU_ *= 0.0;
     deltaWRhoE_ *= 0.0;
 
-    Info << "backward sweep... ";
     // Reverse loop over all cells
     forAllReverse(mesh_.cells(), cellI)
     {
@@ -468,7 +477,6 @@ void Foam::LUSGS::sweep()
         deltaWRhoE_[cellI] = deltaWStarRhoE_[cellI] + U_rhoE / D_[cellI];
 
     }
-    Info << "done." << endl;
 
     // Update conserative fields
     rho_ += deltaWRho_;
