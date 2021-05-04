@@ -301,7 +301,7 @@ void Foam::numericFlux::update()
 }
 
 
-void Foam::numericFlux::courantNo()
+scalar Foam::numericFlux::courantNo()
 {
     scalar CoNum = 0.0;
     scalar meanCoNum = 0.0;
@@ -318,6 +318,8 @@ void Foam::numericFlux::courantNo()
 
     Info<< "Acoustic Courant mean:" << meanCoNum
         << " max: " << CoNum << endl;
+
+    return CoNum;
 }
 
 

@@ -157,7 +157,7 @@ public:
         void update();
 
         //- Print Courant number
-        void courantNo();
+        scalar courantNo();
 
 };
 

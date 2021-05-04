@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "createFields.H"
+    #include "createTimeControls.H"
     
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -67,8 +68,11 @@ int main(int argc, char *argv[])
         // Do any mesh changes
         mesh.update();
 
-        #include "compressibleCourantNo.H"
-        flux.courantNo();
+        // Calculate acoustic Courant number
+        scalar CoNum = flux.courantNo();
+
+        #include "readTimeControls.H"
+        #include "setDeltaT.H"
 
         flux.update();
 
