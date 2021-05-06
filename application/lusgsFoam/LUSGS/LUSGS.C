@@ -244,7 +244,6 @@ void Foam::LUSGS::sweep()
     (
         fvc::ddt(rhoU_)
       + fvc::div(flux_.phiUp())
-      - fvc::div(flux_.tauMC())
     );
     const volScalarField R_rhoE
     (
