@@ -17,7 +17,7 @@
 git clone git@gitserv.imfd.tu-freiberg.de:fluid/cfd/lusgsfoam.git
 ```
 
-2. Use the Allwmake script to compile the `liblusgs` library, the `performance` function object, and the `lusgsFoam solver
+2. Use the Allwmake script to compile the `liblusgs` library, the `performance` function object, and the `lusgsFoam` solver
 
 ```bash
 ./Allwmake
