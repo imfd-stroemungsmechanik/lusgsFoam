@@ -19,7 +19,7 @@ dynamicFvMesh   dynamicMotionSolverFvMesh;
 
 motionSolverLibs
 (
-    fvMotionSolvers
+    "libfvMotionSolvers.so"
 );
 
 motionSolver    velocityComponentLaplacian;

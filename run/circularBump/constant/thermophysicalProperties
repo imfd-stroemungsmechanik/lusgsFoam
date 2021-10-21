@@ -24,7 +24,6 @@ thermoType
     equationOfState perfectGas;
     specie          specie;
     energy          sensibleInternalEnergy;
-//    energy          sensibleEnthalpy;
 }
 
 mixture
@@ -38,6 +37,7 @@ mixture
     {
         Cp          	1007;
         Hf              0;
+        Tref            0;
     }
     transport
     {

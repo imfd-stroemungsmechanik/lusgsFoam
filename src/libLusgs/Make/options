@@ -1,5 +1,6 @@
 EXE_INC = \
-    -I../../src/libLusgs/lnInclude \
+    -I./LUSGS \
+    -I./numericFlux \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/transportModels/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
@@ -11,14 +12,11 @@ EXE_INC = \
     -I$(LIB_SRC)/meshTools/lnInclude
 
 EXE_LIBS = \
-    -L$(FOAM_USER_LIBBIN) \
-    -llusgs \
     -lfiniteVolume \
     -lfvModels \
     -lfvConstraints \
     -lfluidThermophysicalModels \
     -lspecie \
-    -lrhoCentralFoam \
     -lmomentumTransportModels \
     -lcompressibleMomentumTransportModels \
     -lthermophysicalTransportModels \

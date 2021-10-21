@@ -1,0 +1,10 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+#------------------------------------------------------------------------------
+
+wclean src/libLusgs
+wclean src/functionObjects/performance
+
+wclean application/lusgsFoam
+
+#------------------------------------------------------------------------------

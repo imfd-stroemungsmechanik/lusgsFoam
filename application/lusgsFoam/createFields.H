@@ -9,19 +9,6 @@ thermo.validate(args.executable(), "e");
 
 volScalarField& p = thermo.p();
 
-volScalarField rho
-(
-    IOobject
-    (
-        "rho",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    thermo.rho()
-);
-
 Info<< "Reading field U\n" << endl;
 volVectorField U
 (
@@ -36,12 +23,25 @@ volVectorField U
     mesh
 );
 
-surfaceScalarField phi("phi", fvc::flux(rho*U));
+volScalarField rho
+(
+    IOobject
+    (
+        "rho",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    thermo.rho()
+);
+
+#include "compressibleCreatePhi.H"
 
 Info<< "Creating turbulence model\n" << endl;
-autoPtr<compressible::turbulenceModel> turbulence
+autoPtr<compressible::momentumTransportModel> turbulence
 (
-    compressible::turbulenceModel::New
+    compressible::momentumTransportModel::New
     (
         rho,
         U,
@@ -50,14 +50,22 @@ autoPtr<compressible::turbulenceModel> turbulence
     )
 );
 
-Info<< "Creating numerical flux scheme\n" << endl;
+Info<< "Creating thermophysical transport model\n" << endl;
+autoPtr<fluidThermophysicalTransportModel> thermophysicalTransport
+(
+    fluidThermophysicalTransportModel::New(turbulence(), thermo)
+);
+
+#include "createMRF.H"
+
 numericFlux flux
 (
     p,
     U,
     rho,
     thermo,
-    turbulence
+    turbulence,
+    MRF
 );
 
 LUSGS lusgs
@@ -67,6 +75,7 @@ LUSGS lusgs
     U,
     flux,
     thermo,
-    turbulence
+    thermophysicalTransport,
+    turbulence,
+    MRF
 );
-

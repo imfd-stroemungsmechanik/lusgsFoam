@@ -1,0 +1,3 @@
+performance.C
+
+LIB = $(FOAM_USER_LIBBIN)/libperformance
