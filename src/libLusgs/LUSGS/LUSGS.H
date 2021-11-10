@@ -35,8 +35,8 @@ Description
 
 #include "fvCFD.H"
 #include "psiThermo.H"
-#include "dynamicMomentumTransportModel.H"
 #include "numericFlux.H"
+#include "dynamicMomentumTransportModel.H"
 #include "fluidThermophysicalTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
