@@ -29,8 +29,8 @@ gradSchemes
 
 divSchemes
 {
-    default         none;
-    div(tauMC)      Gauss linear;
+    div(tau)        Gauss linear;
+    div(tau&U)      Gauss linear;
 }
 
 laplacianSchemes

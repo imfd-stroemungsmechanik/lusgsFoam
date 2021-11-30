@@ -17,14 +17,6 @@ FoamFile
 
 solvers
 {
-    "(U|e)"
-    {
-        solver          PBiCGStab;
-        preconditioner  DIC;
-        tolerance       1e-08;
-        relTol          0.1;
-    }
-
     cellMotionUx
     {
         solver          PCG;
