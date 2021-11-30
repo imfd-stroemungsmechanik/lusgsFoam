@@ -1,43 +1,47 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
-  \\      /  F ield         | OpenFOAM: Open Source CFD
-   \\    /   O peration     | 
-    \\  /    A nd           | For copyright notice see file Copyright
-     \\/     M anipulation  | 
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by original author
+     \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file isn't part of foam-extend nor OpenFOAM.
+    This file is part of OpenFOAM.
 
-    foam-extend is free software: you can redistribute it and/or modify it
+    OpenFOAM is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the
-    Free Software Foundation, either version 3 of the License, or (at your
+    Free Software Foundation; either version 2 of the License, or (at your
     option) any later version.
 
-    foam-extend is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    General Public License for more details.
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
 
     You should have received a copy of the GNU General Public License
-    along with foam-extend.  If not, see <http://www.gnu.org/licenses/>.
+    along with OpenFOAM; if not, write to the Free Software Foundation,
+    Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
 
 \*---------------------------------------------------------------------------*/
 
-#include "numericFlux.H"
-#include "MUSCLReconstructionScheme.H"
+#include "inviscidFlux.H"
+
+// * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
+
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-// Construct from components
-Foam::numericFlux::numericFlux
+Foam::inviscidFlux::inviscidFlux
 (
     const volScalarField& p,
     const volVectorField& U,
     const volScalarField& rho,
     const psiThermo& thermophysicalModel,
-    const compressible::momentumTransportModel& turbulence,
+    const compressible::turbulenceModel& turbulence,
     const MRFZoneList& MRF
 )
 :
@@ -110,63 +114,38 @@ Foam::numericFlux::numericFlux
         mesh_,
         dimensionedScalar("pos", dimless, -1.0)
     ),
-    tauMC_
-    (
-        IOobject
-        (
-            "tauMC",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedTensor("tauMC", dimMass/dimLength/dimTime/dimTime, Zero)
-    ),
-    sigmaDotU_
-    (
-        IOobject
-        (
-            "sigmaDotU",
-            mesh_.time().timeName(),
-            mesh_,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh_,
-        dimensionedScalar("sigmaDotU", dimMass*dimLength*dimLength/dimTime/dimTime/dimTime, Zero)
-    ),
     vZero_
     (
         dimensionedScalar("vZero", dimVolume/dimTime, 0.0)
     ),
-    CoNum_(Zero)
+    CoNum_(Zero),
+    fluxScheme_(mesh_.schemesDict().lookupOrDefault<word>("fluxScheme", "Kurganov"))
 {
-    Info<< "Creating numerical flux scheme" << endl;
+    Info<< "Creating inviscid flux scheme" << endl;
 
-    fluxScheme_ = "Kurganov";
-    
-    if (mesh_.schemesDict().readIfPresent("fluxScheme", fluxScheme_))
-    {   
-        if ((fluxScheme_ == "Tadmor") || (fluxScheme_ == "Kurganov"))
-        {   
-            Info<< "    fluxScheme: " << fluxScheme_ << endl;
-        }
-        else
-        {   
-            FatalErrorInFunction
-                << "fluxScheme: " << fluxScheme_
-                << " is not a valid choice. "
-                << "Options are: Tadmor, Kurganov"
-                << abort(FatalError);
-        }
+    if ((fluxScheme_ == "Tadmor") || (fluxScheme_ == "Kurganov"))
+    {
+        Info<< "    fluxScheme: " << fluxScheme_ << endl;
+    }
+    else
+    {
+        FatalErrorInFunction
+            << "fluxScheme: " << fluxScheme_
+            << " is not a valid choice. "
+            << "Options are: Tadmor, Kurganov"
+            << abort(FatalError);
     }
 }
+
+// * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
+
+
+// * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void Foam::numericFlux::update()
+void Foam::inviscidFlux::update()
 {
     // Create mesh flux field
     surfaceScalarField meshPhi
@@ -182,6 +161,7 @@ void Foam::numericFlux::update()
         mesh_,
         dimensionedScalar("meshPhi", dimVolume/dimTime, Zero)
     );
+    meshPhi.setOriented(true);
 
     // Compute mesh flux due to mesh motion ...
     if (mesh_.moving())
@@ -191,31 +171,17 @@ void Foam::numericFlux::update()
     // ... or due to MRF
     MRF_.makeAbsolute(meshPhi);
 
-    autoPtr<MUSCLReconstructionScheme<scalar>> rhoLimiter
-    (
-        MUSCLReconstructionScheme<scalar>::New(rho_, "rho")
-    );
-    autoPtr<MUSCLReconstructionScheme<vector>> ULimiter
-    (
-        MUSCLReconstructionScheme<vector>::New(U_, "U")
-    );
-    autoPtr<MUSCLReconstructionScheme<scalar>> pLimiter
-    (
-        MUSCLReconstructionScheme<scalar>::New(p_, "p")
-    );
+    // Reconstruction of rho
+    surfaceScalarField rho_pos(interpolate(rho_, pos_));
+    surfaceScalarField rho_neg(interpolate(rho_, neg_));
 
-    surfaceScalarField rho_pos = rhoLimiter->interpolateOwn();
-    surfaceScalarField rho_neg = rhoLimiter->interpolateNei();
+    // Reconstruction of U
+    surfaceVectorField U_pos(interpolate(U_, pos_));
+    surfaceVectorField U_neg(interpolate(U_, neg_));
 
-    tmp<surfaceVectorField> tUOwn(ULimiter->interpolateOwn());
-    tmp<surfaceVectorField> tUNei(ULimiter->interpolateNei());
-    const surfaceVectorField& U_pos = tUOwn();
-    const surfaceVectorField& U_neg = tUNei();
-
-    tmp<surfaceScalarField> tpOwn(pLimiter->interpolateOwn());
-    tmp<surfaceScalarField> tpNei(pLimiter->interpolateNei());
-    const surfaceScalarField& p_pos = tpOwn();
-    const surfaceScalarField& p_neg = tpNei();
+    // Reconstruction of p
+    surfaceScalarField p_pos(interpolate(p_, pos_));
+    surfaceScalarField p_neg(interpolate(p_, neg_));
 
     // Compute internal energy
     surfaceScalarField e_pos
@@ -229,16 +195,17 @@ void Foam::numericFlux::update()
         p_neg/rho_neg*(gamma_/(gamma_ - 1.0) - 1.0)
     );
 
-    // Volumetric flux
     surfaceScalarField phiv_pos("phiv_pos", U_pos & mesh_.Sf());
     surfaceScalarField phiv_neg("phiv_neg", U_neg & mesh_.Sf());
 
     // Make fluxes relative to mesh-motion
     phiv_pos -= meshPhi;
     phiv_neg -= meshPhi;
+    // Note: extracted out the orientation so becomes unoriented
+    phiv_pos.setOriented(false);
+    phiv_neg.setOriented(false);
 
     volScalarField c = sqrt(thermo_.gamma()*thermo_.p()/thermo_.rho());
-
     // Sonic flux
     surfaceScalarField cSf_pos
     (
@@ -290,6 +257,9 @@ void Foam::numericFlux::update()
     phi_ = aphiv_pos*rho_pos + aphiv_neg*rho_neg;
 
     surfaceVectorField phiU(aphiv_pos*rho_pos*U_pos + aphiv_neg*rho_neg*U_neg);
+    // Note: reassembled orientation from the pos and neg parts so becomes
+    // oriented
+    phiU.setOriented(true);
 
     phiUp_ = phiU + (a_pos*p_pos + a_neg*p_neg)*mesh_.Sf();
 
@@ -298,23 +268,13 @@ void Foam::numericFlux::update()
         aphiv_pos*(rho_pos*(e_pos + 0.5*magSqr(U_pos)) + p_pos)
       + aphiv_neg*(rho_neg*(e_neg + 0.5*magSqr(U_neg)) + p_neg)
       + aSf*p_pos - aSf*p_neg
-      + meshPhi*(a_pos*p_pos + a_neg*p_neg)
     );
 
-    // Viscous and Reynolds stress tensor
-    volScalarField muEff("muEff", turbulence_.muEff());
-    tauMC_ = muEff*dev2(Foam::T(fvc::grad(U_)));
+    // Make flux for pressure-work absolute
+    surfaceScalarField phia(a_pos*p_pos + a_neg*p_neg);
+    phia.setOriented(true);
 
-    // Dissipation term
-    sigmaDotU_ =
-    (
-        (
-            fvc::interpolate(muEff)*mesh_.magSf()*fvc::snGrad(U_)
-          + fvc::dotInterpolate(mesh_.Sf(), tauMC_)
-        )
-      & (a_pos*U_pos + a_neg*U_neg)
-    );
-
+    phiEp_ += meshPhi*phia;
     scalar meanCoNum(Zero);
 
     // Calculate Courant number

@@ -4,8 +4,8 @@ cd "${0%/*}" || exit                                # Run from this directory
 
 #------------------------------------------------------------------------------
 
-wmake src/libLusgs
 wmake src/functionObjects/performance
+wmake src/functionObjects/lossCoefficient
 
 wmake application/lusgsFoam
 

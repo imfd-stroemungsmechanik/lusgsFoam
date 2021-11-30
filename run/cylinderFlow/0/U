@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2012                                 |
+|  \\    /   O peration     | Version:  v2006                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -9,46 +9,33 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      controlDict;
+    class       volVectorField;
+    location    "0";
+    object      U;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     lusgsFoam;
+dimensions      [ 0 1 -1 0 0 0 0 ];
 
-startFrom       startTime;
+internalField   uniform ( 34.723 0 0 );
 
-startTime       0;
+boundaryField
+{
+    farfield
+    {
+        type            inletOutlet;
+        inletValue      uniform ( 34.723 0 0 );
+        value           uniform ( 34.723 0 0 );
+    }
+    cylinder
+    {
+        type            noSlip;
+    }
+    defaultFaces
+    {
+        type            empty;
+    }
+}
 
-stopAt          endTime;
-
-endTime         0.00002;
-
-deltaT          1e-08;
-
-writeControl    adjustableRunTime;
-
-writeInterval   1e-6;
-
-purgeWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression off;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable true;
-
-adjustTimeStep  yes;
-
-maxCo           0.2;
-
-maxDeltaT       1;
 
 // ************************************************************************* //

@@ -1,55 +1,48 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
-  \\      /  F ield         | OpenFOAM:
-   \\    /   O peration     | 
-    \\  /    A nd           | For copyright notice see file Copyright
-     \\/     M anipulation  | 
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by original author
+     \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
-    This file isn't part of OpenFOAM nor foam-extend.
+    This file is part of OpenFOAM.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    OpenFOAM is free software; you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by the
-    Free Software Foundation, either version 3 of the License, or (at your
+    Free Software Foundation; either version 2 of the License, or (at your
     option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    General Public License for more details.
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
 
     You should have received a copy of the GNU General Public License
-    along with foam-extend.  If not, see <http://www.gnu.org/licenses/>.
-
-Class
-    numericFlux
-
-Description
-    Central-upwind schemes of Kurganov and Tadmor for flux calculation. Uses
-    primitive variables as input and gives back conservative numerical fluxes.
- 
-    A. Kurganov, E. Tadmor. "New High-Resolution Central Schemes for Nonlinear
-    Conservation Laws and Convection-Diffusion Equations."
-    Journal of Computational Physics 160 (2000): 241-282.
-
-    Kurganov, S. Noelle, G. Petrova. "Semi-discrete central-upwind schemes for
-    hyperbolic conservation laws and Hamilton-Jacobi equations."
-    SIAM Journal on Scientific Computing 23 (2001): 707-740. 
+    along with OpenFOAM; if not, write to the Free Software Foundation,
+    Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 SourceFiles
-    numericFlux.H
-    numericFlux.C
+    inviscidFlux
+
+Description
+    SLAU2 flux class, computes numerical fluxes based on SLAU2 scheme. Uses
+    primitive variables as input and gives back conservative numerical fluxes.
+
+    Kitamura, Keiichi and Shima, Eiji: Improvements of Simple Low-Dissipation
+    AUSM Against Shock Instabilities in Consideration of Interfacial Speed of
+    Sound. V European Conference on Computational Fluid Dynamics, 2010
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef numericFlux_H
-#define numericFlux_H
+#ifndef inviscidFlux_H
+#define inviscidFlux_H
 
 #include "fvCFD.H"
 #include "psiThermo.H"
 #include "MRFZoneList.H"
+#include "turbulentFluidThermoModel.H"
 #include "directionInterpolate.H"
-#include "dynamicMomentumTransportModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,32 +50,32 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                          Class numericFlux Declaration
+                           Class inviscidFlux Declaration
 \*---------------------------------------------------------------------------*/
 
-class numericFlux
+class inviscidFlux
 {
     // Private data
 
         //- Reference to mesh
         const fvMesh& mesh_;
-    
+
         // Reference to primitive fields
-    
-            //- Static pressure
+
+            //- static Pressure
             const volScalarField& p_;
-    
+
             //- Velocity
-            const volVectorField& U_;
-    
-            //- Density
-            const volScalarField& rho_;
-    
+            const  volVectorField& U_;
+
+            //- static density
+            const  volScalarField& rho_;
+
         //- Reference to the thermophysicalModel
         const psiThermo& thermo_;
 
         //- Reference to turbulence model
-        const compressible::momentumTransportModel& turbulence_;
+        const compressible::turbulenceModel& turbulence_;
     
         //- Reference to MRFZones
         const MRFZoneList& MRF_;
@@ -104,12 +97,6 @@ class numericFlux
             //- Positive & negative direction
             const surfaceScalarField pos_;
             const surfaceScalarField neg_;
-
-        // Reynolds stress tensor
-        volTensorField tauMC_;
-
-        // Dissipation
-        surfaceScalarField sigmaDotU_;
                         
         // Constant
         const dimensionedScalar vZero_;
@@ -118,24 +105,26 @@ class numericFlux
         scalar CoNum_;
         
         // Flux scheme
-        word fluxScheme_;
-    
+        const word fluxScheme_;
+
 public:
-    
+
     // Constructors
-    
+
         //- Construct from components
-        numericFlux
+        inviscidFlux
         (
             const volScalarField& p,
             const volVectorField& U,
             const volScalarField& rho,
             const psiThermo& thermo,
-            const compressible::momentumTransportModel& turbulence,
+            const compressible::turbulenceModel& turbulence,
             const MRFZoneList& MRF
         );
-    
-    
+
+
+    // Destructor - default
+
     // Member Functions
     
         // Return variables
@@ -158,19 +147,7 @@ public:
                 return phiEp_;
             }
     
-            //- Return turbulent shear stress
-            const volTensorField& tauMC() const
-            {
-                return tauMC_;
-            }
-    
-            //- Return dissipation
-            const surfaceScalarField& sigmaDotU() const
-            {
-                return sigmaDotU_;
-            }
-    
-        //- Update fluxes 
+        //- Update convective fluxes 
         void update();
 
         //- Return Courant number

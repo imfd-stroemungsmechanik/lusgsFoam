@@ -8,6 +8,20 @@ psiThermo& thermo = pThermo();
 thermo.validate(args.executable(), "e");
 
 volScalarField& p = thermo.p();
+volScalarField& e = thermo.he();
+
+volScalarField rho
+(
+    IOobject
+    (
+        "rho",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    thermo.rho()
+);
 
 Info<< "Reading field U\n" << endl;
 volVectorField U
@@ -23,25 +37,13 @@ volVectorField U
     mesh
 );
 
-volScalarField rho
-(
-    IOobject
-    (
-        "rho",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    thermo.rho()
-);
-
-#include "compressibleCreatePhi.H"
+// Create mass flux alias for easier coupling with other code components
+surfaceScalarField phi("phi", mesh.Sf() & fvc::interpolate(rho*U));
 
 Info<< "Creating turbulence model\n" << endl;
-autoPtr<compressible::momentumTransportModel> turbulence
+autoPtr<compressible::turbulenceModel> turbulence
 (
-    compressible::momentumTransportModel::New
+    compressible::turbulenceModel::New
     (
         rho,
         U,
@@ -50,15 +52,10 @@ autoPtr<compressible::momentumTransportModel> turbulence
     )
 );
 
-Info<< "Creating thermophysical transport model\n" << endl;
-autoPtr<fluidThermophysicalTransportModel> thermophysicalTransport
-(
-    fluidThermophysicalTransportModel::New(turbulence(), thermo)
-);
-
 #include "createMRF.H"
 
-numericFlux flux
+// Flux calculation
+inviscidFlux flux
 (
     p,
     U,
@@ -71,11 +68,10 @@ numericFlux flux
 LUSGS lusgs
 (
     p,
-    rho,
     U,
+    rho,
     flux,
     thermo,
-    thermophysicalTransport,
     turbulence,
     MRF
 );

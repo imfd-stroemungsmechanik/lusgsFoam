@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2012                                 |
+|  \\    /   O peration     | Version:  v2006                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -11,44 +11,44 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "system";
-    object      controlDict;
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     lusgsFoam;
+fluxScheme              Kurganov;
 
-startFrom       startTime;
+ddtSchemes
+{
+    default             Euler;
+}
 
-startTime       0;
+gradSchemes
+{
+    default             Gauss linear;
+}
 
-stopAt          endTime;
+divSchemes
+{
+    div(tauMC)          Gauss linear;
+}
 
-endTime         0.00002;
+laplacianSchemes
+{
+    default             Gauss linear corrected;
+}
 
-deltaT          1e-08;
+interpolationSchemes
+{
+    default             linear;
 
-writeControl    adjustableRunTime;
+    reconstruct(rho)    vanLeer;
+    reconstruct(p)      vanLeer;
+    reconstruct(U)      vanLeerV;
+}
 
-writeInterval   1e-6;
-
-purgeWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression off;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable true;
-
-adjustTimeStep  yes;
-
-maxCo           0.2;
-
-maxDeltaT       1;
+snGradSchemes
+{
+    default             corrected;
+}
 
 // ************************************************************************* //

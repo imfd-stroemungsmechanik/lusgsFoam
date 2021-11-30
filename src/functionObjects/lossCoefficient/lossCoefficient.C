@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "performance.H"
+#include "lossCoefficient.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -32,26 +32,26 @@ namespace Foam
 {
 namespace functionObjects
 {
-    defineTypeNameAndDebug(performance, 0);
+    defineTypeNameAndDebug(lossCoefficient, 0);
 
-    addToRunTimeSelectionTable(functionObject, performance, dictionary);
+    addToRunTimeSelectionTable(functionObject, lossCoefficient, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
-void Foam::functionObjects::performance::createFiles()
+void Foam::functionObjects::lossCoefficient::createFiles()
 {
-    if (writeToFile() && !performanceFilePtr_.valid())
+    if (writeToFile() && !lossCoefficientFilePtr_.valid())
     {
-        performanceFilePtr_ = createFile("performanceType");
-        writeIntegratedHeader("performanceType", performanceFilePtr_());
+        lossCoefficientFilePtr_ = createFile("lossCoefficientType");
+        writeIntegratedHeader("lossCoefficientType", lossCoefficientFilePtr_());
     }
 }
 
 
-void Foam::functionObjects::performance::writeIntegratedHeader
+void Foam::functionObjects::lossCoefficient::writeIntegratedHeader
 (
     const word& header,
     Ostream& os
@@ -59,75 +59,67 @@ void Foam::functionObjects::performance::writeIntegratedHeader
 {
     writeHeader(os, header);
     writeCommented(os, "Time");
-    writeTabbed(os, "(corrected) massflow [kg/s]");
-    writeTabbed(os, "total pressure ratio [-]");
-    writeTabbed(os, "isentropic efficiency [-]");
+    writeTabbed(os, "loss coefficient [-]");
     os  << endl;
 }
 
 
-void Foam::functionObjects::performance::calcPerformance()
+void Foam::functionObjects::lossCoefficient::calclossCoefficient()
 {
-    massFlowRate_ = 0.0;
-    totalPressureRatio_ = 0.0;
-    isentropicEfficiency_ = 0.0;
-
+    lossCoefficient_ = 0.0;
 
     const volVectorField& U = obr_.lookupObject<volVectorField>(UName_);
     const volScalarField& p = obr_.lookupObject<volScalarField>(pName_);
-    const volScalarField& T = obr_.lookupObject<volScalarField>("T");
     const surfaceScalarField& phi = obr_.lookupObject<surfaceScalarField>("phi");
 
     const volScalarField& psi = obr_.lookupObject<volScalarField>("thermo:psi");
+    const volScalarField& rho = obr_.lookupObject<volScalarField>("rho");
     const volScalarField Ma = mag(U)/sqrt(gamma_/psi);
+
+    const scalar gM1ByG = (gamma_ - 1.0)/gamma_;
 
     const volScalarField pTot
     (
+        // compressible subsonic
+        //p + 0.5*rho*magSqr(U)
+        // compressible subsonic
+        //p * (1.0 + 0.5*psi*magSqr(U))
+        // unknown
         p * pow( ( 1.0 + (gamma_ - 1.0) / 2.0 * Ma*Ma), (gamma_ / (gamma_ - 1.0)))
+        // High speed compressible
+        //p * pow( 1.0 + 0.5*psi*gM1ByG*magSqr(U), 1.0/gM1ByG)
     );
 
-    const volScalarField Ttot
-    (
-        T * ( 1.0 + 0.5 * (gamma_ - 1.0) * Ma*Ma)
-    );
 
     // Mass flow rate at the inlet and outlet
-    massFlowRate_ = mag(gSum(phi.boundaryField()[patchID1_]));
-    const scalar massFlowRateOutlet = mag(gSum(phi.boundaryField()[patchID2_]));
+    const scalar m1 = mag(gSum(phi.boundaryField()[patchID1_]));
+    const scalar m2 = mag(gSum(phi.boundaryField()[patchID2_]));
 
-    // mass flow averaged total pressure
-    scalar p01 = mag(gSum( pTot.boundaryField()[patchID1_] * phi.boundaryField()[patchID1_] ) ) / max(massFlowRate_, VSMALL);
-    scalar p02 = mag(gSum( pTot.boundaryField()[patchID2_] * phi.boundaryField()[patchID2_] ) ) / max(massFlowRateOutlet, VSMALL);
-
-    // mass flow averaged total pressure
-    scalar T01 = mag(gSum( Ttot.boundaryField()[patchID1_] * phi.boundaryField()[patchID1_] ) ) / max(massFlowRate_, VSMALL);
-    scalar T02 = mag(gSum( Ttot.boundaryField()[patchID2_] * phi.boundaryField()[patchID2_] ) ) / max(massFlowRateOutlet, VSMALL);
-
-    if (corrected_)
+    if ( (mag(m1) > SMALL) && (mag(m2) > SMALL) )
     {
-        massFlowRate_ *= pRef_ / p01;
+        // mass flow averaged static pressure
+        scalar p1 = mag(gSum( p.boundaryField()[patchID1_] * phi.boundaryField()[patchID1_] ) ) / max(m1, SMALL);
+        scalar p2 = mag(gSum( p.boundaryField()[patchID2_] * phi.boundaryField()[patchID2_] ) ) / max(m2, SMALL);
+
+        // mass flow averaged total pressure
+        scalar p01 = mag(gSum( pTot.boundaryField()[patchID1_] * phi.boundaryField()[patchID1_] ) ) / max(m1, SMALL);
+        scalar p02 = mag(gSum( pTot.boundaryField()[patchID2_] * phi.boundaryField()[patchID2_] ) ) / max(m2, SMALL);
+
+        lossCoefficient_ = 1 - ( 1 - pow(p2 / p02, (gamma_ - 1.0) / gamma_) )
+                        / ( 1 - pow(p2 / p01, (gamma_ - 1.0) / gamma_) );
+
     }
-
-    // Account for scale
-    massFlowRate_ *= scale_;
-
-    totalPressureRatio_ = p02 / p01;
-    isentropicEfficiency_ = max
-    (
-        0.0,
-        min
-        (
-            (Foam::pow( p02 / p01, (gamma_ - 1.0) / gamma_ ) - 1.0) / ( T02 / T01 - 1.0),
-            1.0
-        )
-    );
+    else
+    {
+        lossCoefficient_ = 0.0;
+    }
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 
-Foam::functionObjects::performance::performance
+Foam::functionObjects::lossCoefficient::lossCoefficient
 (
     const word& name,
     const Time& runTime,
@@ -140,12 +132,7 @@ Foam::functionObjects::performance::performance
     patchID2_(Zero),
     pName_(word::null),
     UName_(word::null),
-    massFlowRate_(Zero),
-    totalPressureRatio_(Zero),
-    isentropicEfficiency_(Zero),
-    corrected_(false),
-    pRef_(Zero),
-    scale_(Zero),
+    lossCoefficient_(Zero),
     gamma_(Zero)
 {
     // Check if the available mesh is an fvMesh otherise deactivate
@@ -161,14 +148,14 @@ Foam::functionObjects::performance::performance
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 
-Foam::functionObjects::performance::~performance()
+Foam::functionObjects::lossCoefficient::~lossCoefficient()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
-bool Foam::functionObjects::performance::read(const dictionary& dict)
+bool Foam::functionObjects::lossCoefficient::read(const dictionary& dict)
 {
     const fvMesh& mesh = refCast<const fvMesh>(obr_);
 
@@ -183,19 +170,6 @@ bool Foam::functionObjects::performance::read(const dictionary& dict)
     pName_ = dict.lookupOrDefault<word>("pName", "p");
     UName_ = dict.lookupOrDefault<word>("UName", "U");
 
-    // Corrected mass flow rate calculation
-    corrected_ = dict.lookupOrDefault<bool>("corrected", false);
-    if (corrected_)
-    {
-        pRef_ = readScalar(dict.lookup("pRef"));
-    }
-
-    // Scale factor
-    scale_ = dict.lookupOrDefault<label>("scale", 1);
-
-    // Isentropic expansion factor
-    gamma_ = dict.lookupOrDefault<scalar>("gamma", 1.4);
-
     if
     (
         !obr_.foundObject<volVectorField>(UName_)
@@ -207,19 +181,22 @@ bool Foam::functionObjects::performance::read(const dictionary& dict)
             << exit(FatalError);
     }
 
+    // Isentropic expansion factor
+    gamma_ = dict.lookupOrDefault<scalar>("gamma", 1.4);
+
     return true;
 }
 
 
-bool Foam::functionObjects::performance::execute()
+bool Foam::functionObjects::lossCoefficient::execute()
 {
-    calcPerformance();
+    calclossCoefficient();
 
     return true;
 }
 
 
-bool Foam::functionObjects::performance::write()
+bool Foam::functionObjects::lossCoefficient::write()
 {
 
     if (Pstream::master())
@@ -227,21 +204,17 @@ bool Foam::functionObjects::performance::write()
         createFiles();
 
         Info<< type() << " output:" << nl
-            << "        (corrected) mass flow rate : " << massFlowRate_ << nl
-            << "        total pressure ratio       : " << totalPressureRatio_ << nl
-            << "        isentropic efficiency      : " << isentropicEfficiency_ << nl
+            << "        loss coefficient  : " << lossCoefficient_ << nl
             << endl;
 
         // File output
         if (writeToFile())
         {
-            Ostream& os = performanceFilePtr_();
+            Ostream& os = lossCoefficientFilePtr_();
 
             writeCurrentTime(os);
             
-            os  << tab << massFlowRate_ << tab
-                << tab << totalPressureRatio_ << tab
-                << tab << isentropicEfficiency_ << tab
+            os  << tab << lossCoefficient_ << tab
                 << endl;
         }
     }
