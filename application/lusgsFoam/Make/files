@@ -1,3 +1,5 @@
+inviscidFlux/inviscidFlux.C
+LUSGS/LUSGS.C
 lusgsFoam.C
 
 EXE = $(FOAM_USER_APPBIN)/lusgsFoam

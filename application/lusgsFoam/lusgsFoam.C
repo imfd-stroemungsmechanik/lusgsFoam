@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2021 Dr. Martin Heinrich
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright (C) 2011-2012 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -27,20 +27,17 @@ Application
 Description
     Density-based solver for high-speed, transient flows. Uses implicit
     time advancement for large Courant-numbers based on the Lower-Upper
-    Symmetric Gauss-Seidel (LU-SGS) method. Additional support for
-    dynamic mesh and Multiple Reference Frame (MRF) for turbomachinery
-    flows simulations.
+    Symmetric Gauss-Seidel (LU-SGS) scheme.
 
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
-#include "dynamicFvMesh.H"
 #include "psiThermo.H"
-#include "dynamicMomentumTransportModel.H"
-#include "fluidThermophysicalTransportModel.H"
+#include "dynamicFvMesh.H"
+#include "turbulentFluidThermoModel.H"
 
-#include "numericFlux.H"
 #include "LUSGS.H"
+#include "inviscidFlux.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -56,15 +53,13 @@ int main(int argc, char *argv[])
     #define NO_CONTROL
     #include "postProcess.H"
 
-    #include "setRootCaseLists.H"
+    #include "setRootCase.H"
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "createFields.H"
     #include "createTimeControls.H"
-
-    turbulence->validate();
-
-    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+    
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     // Courant numbers used to adjust the time-step
     scalar CoNum = 0.0;
@@ -82,8 +77,8 @@ int main(int argc, char *argv[])
 
         // Do any mesh changes
         mesh.update();
-
-        // Compute inviscid and viscous fluxes
+        
+        // Update fluxes
         flux.update();
 
         // Get acoustic Courant number
@@ -92,22 +87,23 @@ int main(int argc, char *argv[])
         // Perform forward & backward sweep of LU-SGS scheme
         lusgs.sweep();
 
-        // Make flux accessible for other parts of OpenFOAM
+        // Update the mass flux            
         phi = flux.phi();
 
+        // Solve governing equations of turbulence model
         turbulence->correct();
-        thermophysicalTransport->correct();
 
+        // Write time step
         runTime.write();
+
+      	// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
         Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
             << "  ClockTime = " << runTime.elapsedClockTime() << " s"
             << nl << endl;
     }
 
-    Info<< "End\n" << endl;
-
-    return 0;
+    Info<< "\nEnd\n" << endl;
 }
 
 // ************************************************************************* //

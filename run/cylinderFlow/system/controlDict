@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2012                                 |
+|  \\    /   O peration     | Version:  v2006                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -23,13 +23,13 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         0.00002;
+endTime         10;
 
-deltaT          1e-08;
+deltaT          2e-3;
 
-writeControl    adjustableRunTime;
+writeControl    runTime;
 
-writeInterval   1e-6;
+writeInterval   1;
 
 purgeWrite      0;
 
@@ -37,18 +37,39 @@ writeFormat     ascii;
 
 writePrecision  6;
 
-writeCompression off;
+writeCompression on;
 
 timeFormat      general;
 
-timePrecision   6;
+timePrecision   9;
 
 runTimeModifiable true;
 
-adjustTimeStep  yes;
+functions
+{
+    forceCoefficients
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
 
-maxCo           0.2;
+        writeControl    timeStep;
+        writeInterval   1;
 
-maxDeltaT       1;
+        log             off;
+
+        patches         (cylinder);
+
+        magUInf         34.723;
+        rhoInf          1.161;
+        lRef            1;
+        Aref            1;
+
+        liftDir         (0 1 0);
+        dragDir         (1 0 0);
+
+        CofR            (0 0 0);
+        pitchAxis       (0 1 0);
+    }
+}
 
 // ************************************************************************* //

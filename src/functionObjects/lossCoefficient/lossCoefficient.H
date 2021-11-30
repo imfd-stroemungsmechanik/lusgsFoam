@@ -22,22 +22,22 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::performance
+    Foam::lossCoefficient
 
 Description
-    Calculates the performance of a turbomachine between two patches. Resulting
+    Calculates the lossCoefficient of a turbomachine between two patches. Resulting
     data consists of (corrected) mass flow rate at first patch, total pressure
     ratio and isentropic efficiency.
 
-    Member function performance::write() calculates the performance and writes
-    them into the file \<timeDir\>/performance.dat.
+    Member function lossCoefficient::write() calculates the lossCoefficient and writes
+    them into the file \<timeDir\>/lossCoefficient.dat.
 
     Example of function object specification:
     \verbatim
-    performance1
+    lossCoefficient1
     {
-        type        performance;
-        libs        ("libperformance.so");
+        type        lossCoefficient;
+        libs        ("liblossCoefficient.so");
         
         log         yes;
         patch1      inlet;
@@ -48,32 +48,21 @@ Description
 Usage
     \table
         Property     | Description             | Required    | Default value
-        type         | Type name: performance  | yes         |
-        log          | Write performance data to standard output | no | no
+        type         | Type name: lossCoefficient  | yes         |
+        log          | Write lossCoefficient data to standard output | no | no
         patch1       | Patch name 1            | yes |
         patch2       | Patch name 2            | yes |
         p            | Pressure field name     | no          | p
         U            | Velocity field name     | no          | U
-        corrected    | Optionally correct inlet mass flow rate | no | no
-        pRef         | Reference pressure for correction | no | 101325
-        scale        | Optionally scale mass flow rate | no | 1
     \endtable
 
-Note
-  - If the \c corrected bool is set to true, the mass flow rate at patch 1
-    is corrected with respect to the (optional) reference pressure pRef.
-    This might be helpful if the inlet pressure is not standard condition.
-  - The mass flow rate at patch 1 can be scaled based on the scaling factor
-    \c scale. This is useful if only a blade passage of a compressor wheel
-    is simulated.
-
 SourceFiles
-    performance.C
+    lossCoefficient.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef performance_H
-#define performance_H
+#ifndef lossCoefficient_H
+#define lossCoefficient_H
 
 #include "fvMeshFunctionObject.H"
 #include "logFiles.H"
@@ -88,10 +77,10 @@ namespace functionObjects
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class performance Declaration
+                           Class lossCoefficient Declaration
 \*---------------------------------------------------------------------------*/
 
-class performance
+class lossCoefficient
 :
     public fvMeshFunctionObject,
     public writeFile
@@ -101,7 +90,7 @@ protected:
     // Protected data
 
         // File streams
-        autoPtr<OFstream> performanceFilePtr_;
+        autoPtr<OFstream> lossCoefficientFilePtr_;
 
         //- Inlet and outlet patch name
         label patchID1_;
@@ -113,23 +102,8 @@ protected:
         //- Name of velocity field
         word UName_;
 
-        // Mass flow rate at inlet patch
-        scalar massFlowRate_;
-        
-        // total pressure ratio
-        scalar totalPressureRatio_;
-        
-        // isentropic efficiency
-        scalar isentropicEfficiency_;
-
-        //- Bool for corrected mass flow rate
-        bool corrected_;
-
-        //- Optional reference pressure
-        scalar pRef_;
-
-        //- Scale factor used for periodic domains
-        label scale_;
+        // Loss coefficient
+        scalar lossCoefficient_;
 
         //- Isentropic expansion factor
         scalar gamma_;
@@ -142,26 +116,26 @@ protected:
         //- Write header for integrated data
         void writeIntegratedHeader(const word& header, Ostream& os) const;
 
-        //- Calculate the performance 
-        void calcPerformance();
+        //- Calculate the lossCoefficient 
+        void calclossCoefficient();
 
         //- Disallow default bitwise copy construct
-        performance(const performance&);
+        lossCoefficient(const lossCoefficient&);
 
         //- Disallow default bitwise assignment
-        void operator=(const performance&);
+        void operator=(const lossCoefficient&);
 
 
 public:
 
     //- Runtime type information
-    TypeName("performance");
+    TypeName("lossCoefficient");
 
 
     // Constructors
 
         //- Construct from Time and dictionary
-        performance
+        lossCoefficient
         (
             const word& name,
             const Time& runTime,
@@ -169,7 +143,7 @@ public:
         );
         
         //- Construct from objectRegistry and dictionary
-        performance
+        lossCoefficient
         (
             const word& name,
             const objectRegistry& obr,
@@ -178,12 +152,12 @@ public:
 
 
     //- Destructor
-    virtual ~performance();
+    virtual ~lossCoefficient();
 
 
     // Member Functions
 
-        //- Read the performance data
+        //- Read the lossCoefficient data
         virtual bool read(const dictionary&);
 
         //- Execute, currently does nothing
