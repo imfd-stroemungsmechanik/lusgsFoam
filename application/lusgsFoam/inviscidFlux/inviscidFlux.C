@@ -119,6 +119,7 @@ Foam::inviscidFlux::inviscidFlux
         dimensionedScalar("vZero", dimVolume/dimTime, 0.0)
     ),
     CoNum_(Zero),
+    meanCoNum_(Zero),
     fluxScheme_(mesh_.schemesDict().lookupOrDefault<word>("fluxScheme", "Kurganov"))
 {
     Info<< "Creating inviscid flux scheme" << endl;
@@ -275,7 +276,6 @@ void Foam::inviscidFlux::update()
     phia.setOriented(true);
 
     phiEp_ += meshPhi*phia;
-    scalar meanCoNum(Zero);
 
     // Calculate Courant number
     if (mesh_.nInternalFaces())
@@ -284,12 +284,18 @@ void Foam::inviscidFlux::update()
 
         CoNum_ = 0.5*gMax(sumAmaxSf/mesh_.V().field())*mesh_.time().deltaTValue();
 
-        meanCoNum =
+        meanCoNum_ =
             0.5*(gSum(sumAmaxSf)/gSum(mesh_.V().field()))*mesh_.time().deltaTValue();
     }
+}
 
-    Info<< "Acoustic Courant mean: " << meanCoNum
+
+scalar Foam::inviscidFlux::CoNum()
+{
+    Info<< "Acoustic Courant mean: " << meanCoNum_
         << " max: " << CoNum_ << endl;
+
+    return CoNum_;
 }
 
 // ************************************************************************* //

@@ -118,6 +118,9 @@ class LUSGS
             // Over-relaxation parameter
             scalar omega_;
 
+            // Number of LUSGS iterations
+            label nIter_;
+
 
     // Private Member Functions
         

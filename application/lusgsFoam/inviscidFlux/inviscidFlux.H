@@ -103,6 +103,7 @@ class inviscidFlux
 
         //- Maximum and mean acoustic Courant number
         scalar CoNum_;
+        scalar meanCoNum_;
         
         // Flux scheme
         const word fluxScheme_;
@@ -150,11 +151,8 @@ public:
         //- Update convective fluxes 
         void update();
 
-        //- Return Courant number
-        scalar CoNum()
-        {
-            return CoNum_;
-        };
+        //- Print and return Courant number
+        scalar CoNum();
 };
 
 
