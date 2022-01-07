@@ -1,0 +1,5 @@
+inviscidFlux/inviscidFlux.C
+
+LUSGS/LUSGS.C
+
+LIB = $(FOAM_USER_LIBBIN)/libLusgs
