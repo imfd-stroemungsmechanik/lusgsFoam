@@ -5,6 +5,7 @@ cd "${0%/*}" || exit                                # Run from this directory
 wclean src/functionObjects/performance
 wclean src/functionObjects/lossCoefficient
 
+wclean src/libLusgs
 wclean application/lusgsFoam
 
 #------------------------------------------------------------------------------

@@ -28,7 +28,7 @@ Class
 Description
     Implicit time advancement algorithm based on the Lower-Upper Symmetric-
     Gauss-Seidel algorithm. Exact derivations of invicid flux Jacobians
-    are implemented. 
+    are implemented based on Blasek (2015). 
 
 \*---------------------------------------------------------------------------*/
 

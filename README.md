@@ -8,14 +8,14 @@
 - 2nd order spatial accuracy using the using the central schemes of Kurganov and Tadmor
 - Convective flux Jacobian computed based on matrix formulation from Blazek (2015)
 - Additional performance and loss coefficient function object for turbomachinery postprocessing
-- Support for OpenFOAM v2106
+- Support for OpenFOAM v2106 and v2112
 
 ### Compilation
 
 1. Clone the ```lusgsFoam``` repository
 
 ```bash
-git clone git@gitserv.imfd.tu-freiberg.de:fluid/cfd/lusgsFoam.git
+git clone https://github.com/imfd-stroemungsmechanik/lusgsFoam.git
 ```
 
 2. Use the Allwmake script to compile the `lusgsFoam` solver and the function objects

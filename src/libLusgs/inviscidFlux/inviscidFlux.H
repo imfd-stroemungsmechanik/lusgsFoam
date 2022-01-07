@@ -26,12 +26,13 @@ SourceFiles
     inviscidFlux
 
 Description
-    SLAU2 flux class, computes numerical fluxes based on SLAU2 scheme. Uses
-    primitive variables as input and gives back conservative numerical fluxes.
+    Inviscid flux class, computes inviscid numerical fluxes based on the
+    central-upwind schemes of Kurganov and Tadmor. Uses primitive variables
+    as input and gives back conservative numerical fluxes.
 
-    Kitamura, Keiichi and Shima, Eiji: Improvements of Simple Low-Dissipation
-    AUSM Against Shock Instabilities in Consideration of Interfacial Speed of
-    Sound. V European Conference on Computational Fluid Dynamics, 2010
+    Kurganov A, Tadmor E.: New high-resolution central schemes for nonlinear
+    conservation laws and convection–diffusion equations.
+    Journal of Computational Physics 2001; 160:241–282.
 
 \*---------------------------------------------------------------------------*/
 

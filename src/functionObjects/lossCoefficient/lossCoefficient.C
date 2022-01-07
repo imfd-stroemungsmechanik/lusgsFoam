@@ -80,14 +80,7 @@ void Foam::functionObjects::lossCoefficient::calclossCoefficient()
 
     const volScalarField pTot
     (
-        // compressible subsonic
-        //p + 0.5*rho*magSqr(U)
-        // compressible subsonic
-        //p * (1.0 + 0.5*psi*magSqr(U))
-        // unknown
         p * pow( ( 1.0 + (gamma_ - 1.0) / 2.0 * Ma*Ma), (gamma_ / (gamma_ - 1.0)))
-        // High speed compressible
-        //p * pow( 1.0 + 0.5*psi*gM1ByG*magSqr(U), 1.0/gM1ByG)
     );
 
 
