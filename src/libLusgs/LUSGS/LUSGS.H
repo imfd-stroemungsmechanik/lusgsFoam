@@ -121,9 +121,6 @@ class LUSGS
             // Number of LUSGS iterations
             label nIter_;
 
-            // LUSGS mode
-            bool matrix_;
-
     // Private Member Functions
         
         //- Update primitive fields

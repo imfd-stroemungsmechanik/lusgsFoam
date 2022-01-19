@@ -183,8 +183,7 @@ Foam::LUSGS::LUSGS
         zeroGradientFvPatchScalarField::typeName
     ),
     omega_(1.0),
-    nIter_(1),
-    matrix_(true)
+    nIter_(1)
 {
     Info<< "\nInitializing LU-SGS scheme" << endl;
 
@@ -192,11 +191,9 @@ Foam::LUSGS::LUSGS
     {
         omega_ = mesh_.solutionDict().subDict("LUSGS").lookupOrDefault<scalar>("omega", 1.0);
         nIter_ = mesh_.solutionDict().subDict("LUSGS").lookupOrDefault<label>("nIter", 1);
-        matrix_ = mesh_.solutionDict().subDict("LUSGS").lookupOrDefault<bool>("matrix", true);
     }
     Info << "    omega       " << omega_ << endl;
     Info << "    nIter       " << nIter_ << endl;
-    Info << "    matrix      " << matrix_ << endl;
 }
 
 
@@ -220,17 +217,8 @@ void Foam::LUSGS::sweep()
             flux_.update();
         }
 
-        // Viscous and Reynolds stress tensor
-        const volSymmTensorField tau
-        (
-            "tau",
-          - turbulence_.devRhoReff()
-          - ((2.0/3.0)*I)*rho_*turbulence_.k()
-        );
-
-
-    // Effective viscosity
-         volScalarField muEff("muEff", turbulence_.muEff());
+        // Effective viscosity
+        volScalarField muEff("muEff", turbulence_.muEff());
 
         // Assemble residuals including time derivatives
         const volScalarField R_rho
@@ -242,31 +230,15 @@ void Foam::LUSGS::sweep()
         (
             fvc::ddt(rhoU_)
           + fvc::div(flux_.phiUp())
-// rhoCentralFoam
           - fvc::laplacian(muEff, U_)
           - fvc::div(flux_.tauMC())
-// myLusgsFoam
-//          + fvc::div(turbulence_.devRhoReff(), "div(tau)") 
-// Original
-//          - fvc::div(tau) 
           + MRF_.DDt(rho_, U_)
         );
         const volScalarField R_rhoE
         (
             fvc::ddt(rhoE_)
           + fvc::div(flux_.phiEp())
-// rhoCentralFoam
           - fvc::div(flux_.sigmaDotU())
-// myLusgsFoam
-//          + fvc::div(turbulence_.devRhoReff() & U_, "div(tau&U)")
-// Original
-//          - fvc::div(tau & U_, "div(tau&U)")
-
-//          - fvc::laplacian
-//            (
-//                (turbulence_.mu()+0.6*turbulence_.mut()),
-//                turbulence_.k()
-//            )
           - fvc::laplacian(turbulence_.alphaEff(), thermo_.he())
         );
 
@@ -402,95 +374,68 @@ void Foam::LUSGS::sweep()
                     // Calculate lower-diagonal matrix L
                     if (cellI == nei)
                     {
-                        if (matrix_)
-                        {
-                            const scalar rho1 = rho_[own] + deltaWStarRho_[own];
-                            const vector rhoU1 = rhoU_[own] + deltaWStarRhoU_[own];
-                            const scalar rhoE1 = rhoE_[own] + deltaWStarRhoE_[own];
-
-                            const scalar p1 = (gamma_[faceI] - 1.0) * (rhoE1 - 0.5*magSqr(rhoU1)/rho1);
-
-                            // Previous and new fluxes
-                            const scalar phi0 = U_[own] & Sf[faceI];
-                            const scalar phi1 = (rhoU1/rho1) & Sf[faceI];
-                    
-                            // Relative fluxes
-                            const scalar phi0r = phi0 - meshPhi[faceI];
-                            const scalar phi1r = phi1 - meshPhi[faceI];
+                        // Cell values of owner cell
+                        const scalar rho = rho_[own] + deltaWStarRho_[own];
+                        const vector rhoU = rhoU_[own] + deltaWStarRhoU_[own];
+                        const scalar rhoE = rhoE_[own] + deltaWStarRhoE_[own];
+     
+                        const vector U = rhoU / rho;
+                        const vector n = Sf[faceI] / magSf[faceI];
+        
+                        const scalar Ux = U.component(0);
+                        const scalar Uy = U.component(1);
+                        const scalar Uz = U.component(2);
+                        const scalar nx = n.component(0);
+                        const scalar ny = n.component(1);
+                        const scalar nz = n.component(2);
+        
+                        // coefficients
+                        const scalar phi = 0.5*(gamma_[faceI] - 1.0)*magSqr(U);
+                        const scalar a1 = gamma_[faceI] * rhoE / rho - phi;
+                        const scalar a2 = gamma_[faceI] - 1.0;
+                        const scalar a3 = gamma_[faceI] - 2.0;
+                        const scalar v = (n & U);
+                        const scalar vt = meshPhi[faceI] / magSf[faceI];
+                        const scalar Lambda = (lc + lv)/magSf[faceI];
+    
+                        // Calculate A_c * deltaWStar
+                        L_rho += 0.5*magSf[faceI]*( (Lambda - vt)*deltaWStarRho_[own] + (n & deltaWStarRhoU_[own]) );
   
-                            // Calculate lower diagonal matrix
-                            L_rho += (0.5*lc + lv)*deltaWStarRho_[own]
-                              + 0.5*(rho1*phi1r - rho_[own]*phi0r);
-                            L_rhoU += (0.5*lc + lv)*deltaWStarRhoU_[own]
-                              + 0.5*(rhoU1*phi1r - rhoU_[own]*phi0r + (p1 - p_[own])*Sf[faceI]);
-                            L_rhoE += (0.5*lc + lv)*deltaWStarRhoE_[own]
-                              + 0.5*((rhoE1*phi1r + p1*phi1) - (rhoE_[own]*phi0r + p_[own]*phi0));
-                        }
-                        else
-                        {    
-                            // Cell values of owner cell
-                            const scalar rho = rho_[own] + deltaWStarRho_[own];
-                            const vector rhoU = rhoU_[own] + deltaWStarRhoU_[own];
-                            const scalar rhoE = rhoE_[own] + deltaWStarRhoE_[own];
-        
-                            const vector U = rhoU / rho;
-                            const vector n = Sf[faceI] / magSf[faceI];
-        
-                            const scalar Ux = U.component(0);
-                            const scalar Uy = U.component(1);
-                            const scalar Uz = U.component(2);
-                            const scalar nx = n.component(0);
-                            const scalar ny = n.component(1);
-                            const scalar nz = n.component(2);
-        
-                            // coefficients
-                            const scalar phi = 0.5*(gamma_[faceI] - 1.0)*magSqr(U);
-                            const scalar a1 = gamma_[faceI] * rhoE / rho - phi;
-                            const scalar a2 = gamma_[faceI] - 1.0;
-                            const scalar a3 = gamma_[faceI] - 2.0;
-                            const scalar v = (n & U);
-                            const scalar vt = meshPhi[faceI] / magSf[faceI];
-                            const scalar Lambda = (lc + lv)/magSf[faceI];
-        
-                            // Calculate A_c * deltaWStar
-                            L_rho += 0.5*magSf[faceI]*( (Lambda - vt)*deltaWStarRho_[own] + (n & deltaWStarRhoU_[own]) );
-    
-                            L_rhoU.component(0) += 0.5*magSf[faceI]*
-                            (
-                                (nx*phi - Ux*v)*deltaWStarRho_[own]
-                              + (v - vt - a3*nx*Ux + Lambda)*deltaWStarRhoU_[own].component(0)
-                              + (ny*Ux - a2*nx*Uy)*deltaWStarRhoU_[own].component(1)
-                              + (nz*Ux - a2*nx*Uz)*deltaWStarRhoU_[own].component(2)
-                              + (a2*nx)*deltaWStarRhoE_[own]
-                            );
-    
-                            L_rhoU.component(1) += 0.5*magSf[faceI]*
-                            (
-                                (ny*phi - Uy*v)*deltaWStarRho_[own]
-                              + (nx*Uy - a2*ny*Ux)*deltaWStarRhoU_[own].component(0)
-                              + (v - vt - a3*ny*Uy + Lambda)*deltaWStarRhoU_[own].component(1)
-                              + (nz*Uy - a2*ny*Uz)*deltaWStarRhoU_[own].component(2)
-                              + (a2*ny)*deltaWStarRhoE_[own]
-                            );
-        
-                            L_rhoU.component(2) += 0.5*magSf[faceI]*
-                            (
-                                (nz*phi - Uz*v)*deltaWStarRho_[own]
-                              + (nx*Uz - a2*nz*Ux)*deltaWStarRhoU_[own].component(0)
-                              + (ny*Uz - a2*nz*Uy)*deltaWStarRhoU_[own].component(1)
-                              + (v - vt - a3*nz*Uz + Lambda)*deltaWStarRhoU_[own].component(2)
-                              + (a2*nz)*deltaWStarRhoE_[own]
-                            );
-        
-                            L_rhoE += 0.5*magSf[faceI]*
-                            (
-                                v*(phi - a1)*deltaWStarRho_[own]
-                              + (nx*a1 - a2*Ux*v)*deltaWStarRhoU_[own].component(0)
-                              + (ny*a1 - a2*Uy*v)*deltaWStarRhoU_[own].component(1)
-                              + (nz*a1 - a2*Uz*v)*deltaWStarRhoU_[own].component(2)
-                              + (gamma_[faceI]*v - vt + Lambda)*deltaWStarRhoE_[own]
-                            );
-                        }
+                        L_rhoU.component(0) += 0.5*magSf[faceI]*
+                        (
+                            (nx*phi - Ux*v)*deltaWStarRho_[own]
+                          + (v - vt - a3*nx*Ux + Lambda)*deltaWStarRhoU_[own].component(0)
+                          + (ny*Ux - a2*nx*Uy)*deltaWStarRhoU_[own].component(1)
+                          + (nz*Ux - a2*nx*Uz)*deltaWStarRhoU_[own].component(2)
+                         + (a2*nx)*deltaWStarRhoE_[own]
+                        );
+  
+                        L_rhoU.component(1) += 0.5*magSf[faceI]*
+                        (
+                            (ny*phi - Uy*v)*deltaWStarRho_[own]
+                          + (nx*Uy - a2*ny*Ux)*deltaWStarRhoU_[own].component(0)
+                          + (v - vt - a3*ny*Uy + Lambda)*deltaWStarRhoU_[own].component(1)
+                          + (nz*Uy - a2*ny*Uz)*deltaWStarRhoU_[own].component(2)
+                          + (a2*ny)*deltaWStarRhoE_[own]
+                        );
+   
+                        L_rhoU.component(2) += 0.5*magSf[faceI]*
+                        (
+                            (nz*phi - Uz*v)*deltaWStarRho_[own]
+                          + (nx*Uz - a2*nz*Ux)*deltaWStarRhoU_[own].component(0)
+                          + (ny*Uz - a2*nz*Uy)*deltaWStarRhoU_[own].component(1)
+                          + (v - vt - a3*nz*Uz + Lambda)*deltaWStarRhoU_[own].component(2)
+                          + (a2*nz)*deltaWStarRhoE_[own]
+                        );
+   
+                        L_rhoE += 0.5*magSf[faceI]*
+                        (
+                            v*(phi - a1)*deltaWStarRho_[own]
+                          + (nx*a1 - a2*Ux*v)*deltaWStarRhoU_[own].component(0)
+                          + (ny*a1 - a2*Uy*v)*deltaWStarRhoU_[own].component(1)
+                          + (nz*a1 - a2*Uz*v)*deltaWStarRhoU_[own].component(2)
+                          + (gamma_[faceI]*v - vt + Lambda)*deltaWStarRhoE_[own]
+                        );
                     }
                 }
             }
@@ -544,100 +489,73 @@ void Foam::LUSGS::sweep()
                           + cf*magSf[faceI];
                         const scalar lv = sqr(magSf[faceI]) / dvol * nuMaxf;
 
-                        if (matrix_)
-                        {
-                            const scalar rho1 = rho_[nei] + deltaWRho_[nei];
-                            const vector rhoU1 = rhoU_[nei] + deltaWRhoU_[nei];
-                            const scalar rhoE1 = rhoE_[nei] + deltaWRhoE_[nei];
-
-                            const scalar p1 = (gamma_[faceI] - 1.0) * (rhoE1 - 0.5*magSqr(rhoU1)/rho1);
-
-                            // Previous and new fluxes
-                            const scalar phi0 = U_[nei] & Sf[faceI];
-                            const scalar phi1 = (rhoU1/rho1) & Sf[faceI];
-                   
-                            // Relative fluxes
-                            const scalar phi0r = phi0 - meshPhi[faceI];
-                            const scalar phi1r = phi1 - meshPhi[faceI];
-                  
-                            // Calculate upper diagonal matrix
-                            U_rho += (0.5*lc + lv)*deltaWRho_[nei]
-                             - 0.5*(rho1*phi1r - rho_[nei]*phi0r);
-                            U_rhoU += (0.5*lc + lv)*deltaWRhoU_[nei]
-                             - 0.5*(rhoU1*phi1r - rhoU_[nei]*phi0r + (p1 - p_[nei])*Sf[faceI]);
-                            U_rhoE += (0.5*lc + lv)*deltaWRhoE_[nei]
-                             - 0.5*((rhoE1*phi1r + p1*phi1) - (rhoE_[nei]*phi0r + p_[nei]*phi0));
-                        }
-                        else
-                        {    
-                            // Face values
-                            const scalar rho = rho_[nei] + deltaWRho_[nei];
-                            const vector rhoU = rhoU_[nei] + deltaWRhoU_[nei];
-                            const scalar rhoE = rhoE_[nei] + deltaWRhoE_[nei];
+                        // Face values
+                        const scalar rho = rho_[nei] + deltaWRho_[nei];
+                        const vector rhoU = rhoU_[nei] + deltaWRhoU_[nei];
+                        const scalar rhoE = rhoE_[nei] + deltaWRhoE_[nei];
         
-                            const vector U = rhoU / rho;
-                            const vector n = Sf[faceI] / magSf[faceI];
+                       const vector U = rhoU / rho;
+                       const vector n = Sf[faceI] / magSf[faceI];
     
-                            const scalar Ux = U.component(0);
-                            const scalar Uy = U.component(1);
-                            const scalar Uz = U.component(2);
-                            const scalar nx = n.component(0);
-                            const scalar ny = n.component(1);
-                            const scalar nz = n.component(2);
+                       const scalar Ux = U.component(0);
+                       const scalar Uy = U.component(1);
+                       const scalar Uz = U.component(2);
+                       const scalar nx = n.component(0);
+                       const scalar ny = n.component(1);
+                       const scalar nz = n.component(2);
         
-                            // coefficients
-                            const scalar phi = 0.5*(gamma_[faceI] - 1.0)*magSqr(U);
-                            const scalar a1 = gamma_[faceI] * rhoE / rho - phi;
-                            const scalar a2 = gamma_[faceI] - 1.0;
-                            const scalar a3 = gamma_[faceI] - 2.0;
-                            const scalar vt = meshPhi[faceI] / magSf[faceI];
-                            const scalar v = (n & U);
+                       // coefficients
+                       const scalar phi = 0.5*(gamma_[faceI] - 1.0)*magSqr(U);
+                       const scalar a1 = gamma_[faceI] * rhoE / rho - phi;
+                       const scalar a2 = gamma_[faceI] - 1.0;
+                       const scalar a3 = gamma_[faceI] - 2.0;
+                       const scalar vt = meshPhi[faceI] / magSf[faceI];
+                       const scalar v = (n & U);
         
-                            // Negative lambda due to upper diagonal
-                            const scalar Lambda = -(lc + lv)/magSf[faceI];
+                       // Negative lambda due to upper diagonal
+                       const scalar Lambda = -(lc + lv)/magSf[faceI];
         
-                            // Calculate A_c * deltaW
-                            U_rho -= 0.5*( (Lambda - vt)*deltaWRho_[nei] + (n & deltaWRhoU_[nei]) )*magSf[faceI];
+                       // Calculate A_c * deltaW
+                       U_rho -= 0.5*( (Lambda - vt)*deltaWRho_[nei] + (n & deltaWRhoU_[nei]) )*magSf[faceI];
         
-                            U_rhoU.component(0) -= 0.5*magSf[faceI]*
-                            (
-                                (nx*phi - Ux*v)*deltaWRho_[nei]
-                              + (v - vt - a3*nx*Ux + Lambda)*deltaWRhoU_[nei].component(0)
-                              + (ny*Ux - a2*nx*Uy)*deltaWRhoU_[nei].component(1)
-                              + (nz*Ux - a2*nx*Uz)*deltaWRhoU_[nei].component(2)
-                              + (a2*nx)*deltaWRhoE_[nei]
-                            );
+                       U_rhoU.component(0) -= 0.5*magSf[faceI]*
+                       (
+                           (nx*phi - Ux*v)*deltaWRho_[nei]
+                         + (v - vt - a3*nx*Ux + Lambda)*deltaWRhoU_[nei].component(0)
+                         + (ny*Ux - a2*nx*Uy)*deltaWRhoU_[nei].component(1)
+                         + (nz*Ux - a2*nx*Uz)*deltaWRhoU_[nei].component(2)
+                         + (a2*nx)*deltaWRhoE_[nei]
+                       );
         
-                            U_rhoU.component(1) -= 0.5*magSf[faceI]*
-                            (
-                                (ny*phi - Uy*v)*deltaWRho_[nei]
-                              + (nx*Uy - a2*ny*Ux)*deltaWRhoU_[nei].component(0)
-                              + (v - vt - a3*ny*Uy + Lambda)*deltaWRhoU_[nei].component(1)
-                              + (nz*Uy - a2*ny*Uz)*deltaWRhoU_[nei].component(2)
-                              + (a2*ny)*deltaWRhoE_[nei]
-                            );
+                       U_rhoU.component(1) -= 0.5*magSf[faceI]*
+                       (
+                           (ny*phi - Uy*v)*deltaWRho_[nei]
+                         + (nx*Uy - a2*ny*Ux)*deltaWRhoU_[nei].component(0)
+                         + (v - vt - a3*ny*Uy + Lambda)*deltaWRhoU_[nei].component(1)
+                         + (nz*Uy - a2*ny*Uz)*deltaWRhoU_[nei].component(2)
+                         + (a2*ny)*deltaWRhoE_[nei]
+                       );
     
-                            U_rhoU.component(2) -= 0.5*magSf[faceI]*
-                            (
-                                (nz*phi - Uz*v)*deltaWRho_[nei]
-                              + (nx*Uz - a2*nz*Ux)*deltaWRhoU_[nei].component(0)
-                              + (ny*Uz - a2*nz*Uy)*deltaWRhoU_[nei].component(1)
-                              + (v - vt - a3*nz*Uz + Lambda)*deltaWRhoU_[nei].component(2)
-                              + (a2*nz)*deltaWRhoE_[nei]
-                            );
+                       U_rhoU.component(2) -= 0.5*magSf[faceI]*
+                       (
+                           (nz*phi - Uz*v)*deltaWRho_[nei]
+                         + (nx*Uz - a2*nz*Ux)*deltaWRhoU_[nei].component(0)
+                         + (ny*Uz - a2*nz*Uy)*deltaWRhoU_[nei].component(1)
+                         + (v - vt - a3*nz*Uz + Lambda)*deltaWRhoU_[nei].component(2)
+                         + (a2*nz)*deltaWRhoE_[nei]
+                       );
         
-                            U_rhoE -= 0.5*magSf[faceI]*
-                            (
-                                v*(phi - a1)*deltaWRho_[nei]
-                              + (nx*a1 - a2*Ux*v)*deltaWRhoU_[nei].component(0)
-                              + (ny*a1 - a2*Uy*v)*deltaWRhoU_[nei].component(1)
-                              + (nz*a1 - a2*Uz*v)*deltaWRhoU_[nei].component(2)
-                              + (gamma_[faceI]*v - vt + Lambda)*deltaWRhoE_[nei]
-                            );
-                        }
-                    }
-                }
-            }
+                       U_rhoE -= 0.5*magSf[faceI]*
+                       (
+                           v*(phi - a1)*deltaWRho_[nei]
+                         + (nx*a1 - a2*Ux*v)*deltaWRhoU_[nei].component(0)
+                         + (ny*a1 - a2*Uy*v)*deltaWRhoU_[nei].component(1)
+                         + (nz*a1 - a2*Uz*v)*deltaWRhoU_[nei].component(2)
+                         + (gamma_[faceI]*v - vt + Lambda)*deltaWRhoE_[nei]
+                       );
+                   }
+               }
+           }
     
             // Backwards sweep
             deltaWRho_[cellI] = deltaWStarRho_[cellI] + U_rho/D_[cellI];
