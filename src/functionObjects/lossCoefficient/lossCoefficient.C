@@ -73,10 +73,7 @@ void Foam::functionObjects::lossCoefficient::calclossCoefficient()
     const surfaceScalarField& phi = obr_.lookupObject<surfaceScalarField>("phi");
 
     const volScalarField& psi = obr_.lookupObject<volScalarField>("thermo:psi");
-    const volScalarField& rho = obr_.lookupObject<volScalarField>("rho");
     const volScalarField Ma = mag(U)/sqrt(gamma_/psi);
-
-    const scalar gM1ByG = (gamma_ - 1.0)/gamma_;
 
     const volScalarField pTot
     (
@@ -91,7 +88,6 @@ void Foam::functionObjects::lossCoefficient::calclossCoefficient()
     if ( (mag(m1) > SMALL) && (mag(m2) > SMALL) )
     {
         // mass flow averaged static pressure
-        scalar p1 = mag(gSum( p.boundaryField()[patchID1_] * phi.boundaryField()[patchID1_] ) ) / max(m1, SMALL);
         scalar p2 = mag(gSum( p.boundaryField()[patchID2_] * phi.boundaryField()[patchID2_] ) ) / max(m2, SMALL);
 
         // mass flow averaged total pressure
