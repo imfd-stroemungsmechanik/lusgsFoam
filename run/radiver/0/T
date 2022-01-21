@@ -1,0 +1,84 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [ 0 0 0 1 0 0 0 ];
+
+internalField   uniform 295.52;
+
+boundaryField
+{
+    INLET
+    {
+        type            totalTemperature;
+        gamma           1.4;
+        T0              uniform 295.52;
+        value           uniform 295.52;
+    }
+    OUTLET
+    {
+        type            inletOutlet;
+        inletValue      uniform 295.52;
+        value           uniform 295.52;
+    }
+    HUB
+    {
+        type            zeroGradient;
+    }
+    SHROUD
+    {
+        type            zeroGradient;
+    }
+    BLADE
+    {
+        type            zeroGradient;
+    }
+    PERIODIC_1
+    {
+        type            cyclicAMI;
+    }
+    PERIODIC_2
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_1
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_2
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_3
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_4
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_TIP_1
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_TIP_2
+    {
+        type            cyclicAMI;
+    }
+}
+
+
+// ************************************************************************* //

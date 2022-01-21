@@ -1,0 +1,95 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      omega;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [ 0 0 -1 0 0 0 0 ];
+
+internalField   uniform 1000;
+
+boundaryField
+{
+    INLET
+    {
+        type            turbulentMixingLengthFrequencyInlet;
+        mixingLength    0.0073;
+        value           uniform 1000;
+    }
+    OUTLET
+    {
+        type            inletOutlet;
+        inletValue      uniform 1000;
+        value           uniform 1000;
+    }
+    BLADE
+    {
+        type            omegaWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           uniform 1000;
+    }
+    SHROUD
+    {
+        type            omegaWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           uniform 1000;
+    }
+    HUB
+    {
+        type            omegaWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           uniform 1000;
+    }
+    PERIODIC_1
+    {
+        type            cyclicAMI;
+    }
+    PERIODIC_2
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_1
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_2
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_3
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_4
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_TIP_1
+    {
+        type            cyclicAMI;
+    }
+    INTERFACE_TIP_2
+    {
+        type            cyclicAMI;
+    }
+}
+
+
+// ************************************************************************* //
