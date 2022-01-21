@@ -1,0 +1,120 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2112                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     lusgsFoam;
+
+startFrom       latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         8e-2;
+
+deltaT          1e-6;
+
+writeControl    runTime;
+
+writeInterval   1e-2;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  12;
+
+writeCompression on;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable true;
+
+functions
+{
+    fieldAverage1
+    {
+        type            fieldAverage;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    outputTime;
+        restartTime     0.001;
+
+        fields
+        (
+            p
+            {
+                mean        yes;
+                prime2Mean  yes;
+                base        time;
+            }
+            U
+            {
+                mean        yes;
+                prime2Mean  yes;
+                base        time;
+            }
+        );
+    }
+
+    lossCoefficient
+    {
+        type                lossCoefficient;
+        libs                ("liblossCoefficient.so");
+
+        patch1              INLET;
+        patch2              OUTLET;
+    }
+
+    MachNo1
+    {
+        // Mandatory entries (unmodifiable)
+        type            MachNo;
+        libs            (fieldFunctionObjects);
+    
+        // Optional (inherited) entries
+        enabled         true;
+
+        writeControl    outputTime;
+    }
+
+    // Patch average at specified patch 
+    MachOutlet 
+    { 
+        type                    surfaceFieldValue; 
+        libs                    ("libfieldFunctionObjects.so"); 
+ 
+        log                     true; 
+        writeFields             false; 
+ 
+        regionType              patch; 
+        name                    OUTLET; 
+
+        operation               weightedAverage; 
+        weightField             phi; 
+
+        fields 
+        ( 
+            Ma
+        ); 
+    } 
+
+
+
+}
+
+// ************************************************************************* //
