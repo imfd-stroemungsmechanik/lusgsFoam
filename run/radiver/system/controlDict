@@ -47,7 +47,7 @@ runTimeModifiable true;
 
 functions
 {
-    inletInterface
+    performance
     {
         type                performance;
         libs                ("libperformance.so");
