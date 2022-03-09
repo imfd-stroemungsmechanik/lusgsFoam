@@ -10,7 +10,7 @@
 - Additional performance and loss coefficient function object for turbomachinery postprocessing
 - Support for OpenFOAM v2106 and v2112
 
-### Compilation
+## Compilation
 
 1. Clone the ```lusgsFoam``` repository
 
@@ -24,3 +24,8 @@ git clone https://github.com/imfd-stroemungsmechanik/lusgsFoam.git
 ./Allwmake
 ```
 
+## Validation Cases
+
+Two turbomachienry cases are available for validation including the complete numerical setup:
+1. VTI turbine cascade LS89 in ```run/ls89```
+2. high-speed centrifugal compressor RadiVer in ```run/radiver``` 
